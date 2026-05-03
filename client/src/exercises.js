@@ -1,0 +1,63 @@
+const exercises = {
+  Chest: [
+    'Bench Press',
+    'Incline Bench Press',
+    'Decline Bench Press',
+    'Dumbbell Fly',
+    'Cable Fly',
+    'Push Up',
+    'Dumbbell Press',
+  ],
+  Back: [
+    'Deadlift',
+    'Pull Up',
+    'Lat Pulldown',
+    'Barbell Row',
+    'Dumbbell Row',
+    'Cable Row',
+    'T-Bar Row',
+    'Face Pull',
+  ],
+  Tricep: [
+    'Tricep Pushdown',
+    'Skull Crusher',
+    'Close Grip Bench Press',
+    'Overhead Tricep Extension',
+    'Dips',
+  ],
+  Bicep: [
+    'Barbell Curl',
+    'Dumbbell Curl',
+    'Hammer Curl',
+    'Preacher Curl',
+    'Cable Curl',
+    'Concentration Curl',
+  ],
+  Legs: [
+    'Squat',
+    'Leg Press',
+    'Romanian Deadlift',
+    'Leg Curl',
+    'Leg Extension',
+    'Calf Raise',
+    'Lunge',
+    'Hack Squat',
+  ],
+  Abs: [
+    'Crunch',
+    'Plank',
+    'Cable Crunch',
+    'Leg Raise',
+    'Russian Twist',
+    'Ab Wheel',
+    'Sit Up',
+  ],
+  Forearm: [
+    'Wrist Curl',
+    'Reverse Wrist Curl',
+    "Farmer's Walk",
+    'Reverse Curl',
+  ],
+};
+
+export default exercises;
