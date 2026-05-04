@@ -4,7 +4,8 @@ import exercises from '../exercises';
 
 const muscleGroups = Object.keys(exercises);
 const emptySet = () => ({ reps: '', weight: '' });
-const emptyBlock = () => ({ id: Date.now() + Math.random(), muscleGroup: '', exercise: '', sets: [emptySet()] });
+const emptyBlock = () => ({ id: Date.now() + Math.random(), muscleGroup: '', exercise: '', customName: '', sets: [emptySet()] });
+const isKnownExercise = (name) => muscleGroups.some(g => exercises[g].includes(name));
 const today = () => new Date().toISOString().split('T')[0];
 
 const getMuscleGroup = (exerciseName) =>
@@ -32,7 +33,8 @@ export default function WorkoutHistory({ userId, refreshKey, onChanged }) {
       blocks: session.exercises.map(ex => ({
         id: ex.id,
         muscleGroup: getMuscleGroup(ex.exercise),
-        exercise: ex.exercise,
+        exercise: isKnownExercise(ex.exercise) ? ex.exercise : '__custom__',
+        customName: isKnownExercise(ex.exercise) ? '' : ex.exercise,
         sets: ex.sets.map(s => ({ reps: String(s.reps), weight: String(s.weight) })),
       })),
     });
@@ -46,7 +48,7 @@ export default function WorkoutHistory({ userId, refreshKey, onChanged }) {
         date: editForm.date,
         timeOfDay: editForm.timeOfDay || undefined,
         exercises: editForm.blocks.map(b => ({
-          exercise: b.exercise,
+          exercise: b.exercise === '__custom__' ? b.customName.trim() : b.exercise,
           sets: b.sets.map(s => ({ reps: Number(s.reps), weight: Number(s.weight) })),
         })),
       });
@@ -70,7 +72,7 @@ export default function WorkoutHistory({ userId, refreshKey, onChanged }) {
   const addBlock = () => setEditForm(f => ({ ...f, blocks: [...f.blocks, emptyBlock()] }));
   const removeBlock = (i) => setEditForm(f => ({ ...f, blocks: f.blocks.filter((_, idx) => idx !== i) }));
   const updateMuscleGroup = (i, value) =>
-    setEditForm(f => ({ ...f, blocks: f.blocks.map((b, idx) => idx === i ? { ...b, muscleGroup: value, exercise: '' } : b) }));
+    setEditForm(f => ({ ...f, blocks: f.blocks.map((b, idx) => idx === i ? { ...b, muscleGroup: value, exercise: '', customName: '' } : b) }));
   const updateBlock = (i, field, value) =>
     setEditForm(f => ({ ...f, blocks: f.blocks.map((b, idx) => idx === i ? { ...b, [field]: value } : b) }));
   const addSet = (bi) =>
@@ -132,7 +134,17 @@ export default function WorkoutHistory({ userId, refreshKey, onChanged }) {
                         {block.muscleGroup && exercises[block.muscleGroup].map(ex => (
                           <option key={ex} value={ex}>{ex}</option>
                         ))}
+                        {block.muscleGroup && <option value="__custom__">Other (custom)</option>}
                       </select>
+                      {block.exercise === '__custom__' && (
+                        <input
+                          type="text"
+                          value={block.customName}
+                          onChange={e => updateBlock(bi, 'customName', e.target.value)}
+                          placeholder="Exercise name"
+                          style={{ ...fieldStyle, marginTop: '0.4rem' }}
+                        />
+                      )}
                     </div>
                   </div>
 
@@ -171,14 +183,21 @@ export default function WorkoutHistory({ userId, refreshKey, onChanged }) {
 
           ) : (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-                <span style={{ fontWeight: 600, color: '#111827' }}>
-                  {formatDate(session.date)}
-                  {session.time_of_day && (
-                    <span style={{ fontWeight: 400, color: '#6b7280', marginLeft: '0.4rem' }}>
-                      · {session.time_of_day}
-                    </span>
-                  )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+                    {formatDate(session.date)}
+                    {session.time_of_day && (
+                      <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '0.4rem' }}>
+                        · {session.time_of_day}
+                      </span>
+                    )}
+                  </span>
+                  <span style={{ fontSize: '0.75rem', background: '#eff6ff', border: '1px dashed #93c5fd', color: '#1d4ed8', borderRadius: 4, padding: '0.15rem 0.5rem' }}>
+                    {session.exercises.reduce((n, ex) => n + ex.sets.length, 0)} sets
+                    &nbsp;·&nbsp;
+                    {session.exercises.reduce((n, ex) => n + ex.sets.reduce((r, s) => r + s.reps, 0), 0)} reps
+                  </span>
                 </span>
                 <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, marginLeft: '1rem' }}>
                   <button onClick={() => startEdit(session)} style={editBtnStyle}>Edit</button>

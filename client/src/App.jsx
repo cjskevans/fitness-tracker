@@ -72,6 +72,7 @@ export default function App() {
         </div>
         <div style={card}>
           <h2 style={{ marginTop: 0 }}>Progress</h2>
+          <p style={desc}>Select an exercise to see your max weight over time.</p>
           <select
             value={selectedExercise}
             onChange={e => setSelectedExercise(e.target.value)}
@@ -82,24 +83,29 @@ export default function App() {
               <option key={ex} value={ex}>{ex}</option>
             ))}
           </select>
-          {selectedExercise
-            ? <ProgressChart data={chartData} />
-            : <p style={{ color: 'var(--text-muted)' }}>Select an exercise to see your progress.</p>}
+          {selectedExercise && <ProgressChart data={chartData} />}
         </div>
       </div>
 
       <div style={{ ...card, marginTop: '1.5rem' }}>
         <h2 style={{ marginTop: 0 }}>Personal Records</h2>
+        <p style={desc}>Your best set for each exercise, ranked by weight then reps.</p>
         <PersonalRecords userId={user.id} refreshKey={prRefreshKey} />
       </div>
 
       <div style={{ ...card, marginTop: '1.5rem' }}>
         <h2 style={{ marginTop: 0 }}>Workout History</h2>
+        <p style={desc}>Browse, edit, or delete your past workout sessions.</p>
         <WorkoutHistory userId={user.id} refreshKey={historyRefreshKey} onChanged={refreshAll} />
       </div>
     </div>
   );
 }
+
+const desc = {
+  fontSize: '0.875rem', color: 'var(--text-muted)',
+  marginTop: '-0.5rem', marginBottom: '1.25rem',
+};
 
 const card = {
   background: 'var(--surface)',

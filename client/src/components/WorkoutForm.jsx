@@ -5,7 +5,7 @@ import exercises from '../exercises';
 const today = () => new Date().toISOString().split('T')[0];
 const muscleGroups = Object.keys(exercises);
 const emptySet = () => ({ reps: '', weight: '' });
-const emptyBlock = () => ({ id: Date.now() + Math.random(), muscleGroup: '', exercise: '', sets: [emptySet()] });
+const emptyBlock = () => ({ id: Date.now() + Math.random(), muscleGroup: '', exercise: '', customName: '', sets: [emptySet()] });
 
 export default function WorkoutForm({ userId, onLogged }) {
   const [date, setDate] = useState(today());
@@ -20,7 +20,7 @@ export default function WorkoutForm({ userId, onLogged }) {
     setBlocks(prev => prev.map((b, idx) => idx === i ? { ...b, [field]: value } : b));
 
   const updateMuscleGroup = (i, value) =>
-    setBlocks(prev => prev.map((b, idx) => idx === i ? { ...b, muscleGroup: value, exercise: '' } : b));
+    setBlocks(prev => prev.map((b, idx) => idx === i ? { ...b, muscleGroup: value, exercise: '', customName: '' } : b));
 
   const addSet = (bi) =>
     setBlocks(prev => prev.map((b, idx) => idx === bi ? { ...b, sets: [...b.sets, emptySet()] } : b));
@@ -41,7 +41,7 @@ export default function WorkoutForm({ userId, onLogged }) {
         date,
         timeOfDay: timeOfDay || undefined,
         exercises: blocks.map(b => ({
-          exercise: b.exercise,
+          exercise: b.exercise === '__custom__' ? b.customName.trim() : b.exercise,
           sets: b.sets.map(s => ({ reps: Number(s.reps), weight: Number(s.weight) })),
         })),
       });
@@ -66,7 +66,10 @@ export default function WorkoutForm({ userId, onLogged }) {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0, marginBottom: '1.25rem' }}>Log Workout</h2>
+      <h2 style={{ marginTop: 0, marginBottom: '0.25rem' }}>Log Workout</h2>
+      <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: 0, marginBottom: '1.25rem' }}>
+        Record the exercises, sets, and weight from your session.
+      </p>
       <form onSubmit={submit}>
 
         <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', alignItems: 'flex-end' }}>
@@ -117,7 +120,18 @@ export default function WorkoutForm({ userId, onLogged }) {
                   {block.muscleGroup && exercises[block.muscleGroup].map(ex => (
                     <option key={ex} value={ex}>{ex}</option>
                   ))}
+                  {block.muscleGroup && <option value="__custom__">Other (custom)</option>}
                 </select>
+                {block.exercise === '__custom__' && (
+                  <input
+                    type="text"
+                    value={block.customName}
+                    onChange={e => updateBlock(bi, 'customName', e.target.value)}
+                    placeholder="Exercise name"
+                    required
+                    style={{ ...fieldStyle, marginTop: '0.4rem' }}
+                  />
+                )}
               </div>
             </div>
 
