@@ -3,10 +3,11 @@ const exercises = {
     'Bench Press',
     'Incline Bench Press',
     'Decline Bench Press',
+    'Chest Dip',
+    'Pec Deck',
     'Dumbbell Fly',
     'Cable Fly',
     'Push Up',
-    'Dumbbell Press',
   ],
   Back: [
     'Deadlift',

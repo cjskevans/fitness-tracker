@@ -53,9 +53,11 @@ export default function App() {
         </span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem' }}>
-        <WorkoutForm userId={user.id} onLogged={handleLogged} />
-        <div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+        <div style={card}>
+          <WorkoutForm userId={user.id} onLogged={handleLogged} />
+        </div>
+        <div style={card}>
           <h2 style={{ marginTop: 0 }}>Progress</h2>
           <select
             value={selectedExercise}
@@ -73,13 +75,21 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ marginTop: '3rem' }}>
-        <h2>Personal Records</h2>
+      <div style={{ ...card, marginTop: '1.5rem' }}>
+        <h2 style={{ marginTop: 0 }}>Personal Records</h2>
         <PersonalRecords userId={user.id} refreshKey={prRefreshKey} />
       </div>
     </div>
   );
 }
+
+const card = {
+  background: '#fff',
+  border: '1px solid #e5e7eb',
+  borderRadius: 8,
+  padding: '1.5rem',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+};
 
 const switchBtn = {
   background: 'none', border: 'none', color: '#2563eb',

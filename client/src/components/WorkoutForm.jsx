@@ -69,7 +69,7 @@ export default function WorkoutForm({ userId, onLogged }) {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>Log Workout</h2>
+      <h2 style={{ marginTop: 0, marginBottom: '1.25rem' }}>Log Workout</h2>
       <form onSubmit={submit}>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', marginBottom: '1rem' }}>
           <div style={{ flex: 1 }}>
@@ -120,8 +120,8 @@ export default function WorkoutForm({ userId, onLogged }) {
         <label style={labelStyle}>Sets</label>
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.4rem' }}>
           <span style={colHeader}>Set</span>
-          <span style={{ ...colHeader, flex: 2 }}>Reps</span>
           <span style={{ ...colHeader, flex: 2 }}>Weight (lbs)</span>
+          <span style={{ ...colHeader, flex: 2 }}>Reps</span>
           <span style={{ width: 28 }} />
         </div>
 
@@ -133,24 +133,24 @@ export default function WorkoutForm({ userId, onLogged }) {
             <div style={{ flex: 2 }}>
               <input
                 type="number"
-                min="1"
-                value={s.reps}
-                onChange={e => updateSet(i, 'reps', e.target.value)}
-                required
-                style={inputStyle}
-                placeholder="Reps"
-              />
-            </div>
-            <div style={{ flex: 2 }}>
-              <input
-                type="number"
-                min="0"
+                min="0.5"
                 step="0.5"
                 value={s.weight}
                 onChange={e => updateSet(i, 'weight', e.target.value)}
                 required
                 style={inputStyle}
                 placeholder="lbs"
+              />
+            </div>
+            <div style={{ flex: 2 }}>
+              <input
+                type="number"
+                min="1"
+                value={s.reps}
+                onChange={e => updateSet(i, 'reps', e.target.value)}
+                required
+                style={inputStyle}
+                placeholder="Reps"
               />
             </div>
             <button

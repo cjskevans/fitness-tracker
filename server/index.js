@@ -18,7 +18,10 @@ app.post('/api/users', (req, res) => {
 // Chart data: one point per session (max weight that session)
 app.get('/api/workouts', (req, res) => {
   const { exercise, userId } = req.query;
-  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
   if (exercise) {
     const rows = db.prepare(`
       SELECT w.id, w.date, MAX(s.weight) AS weight
@@ -54,8 +57,8 @@ app.post('/api/workouts', (req, res) => {
     return res.status(400).json({ error: 'Cannot log workouts in the future' });
   }
   for (const s of sets) {
-    if (!s.reps || s.weight == null) {
-      return res.status(400).json({ error: 'Each set requires reps and weight' });
+    if (!s.reps || s.reps <= 0 || s.weight == null || s.weight <= 0) {
+      return res.status(400).json({ error: 'Each set requires reps and weight greater than 0' });
     }
   }
 
