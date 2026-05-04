@@ -43,11 +43,15 @@ app.get('/api/exercises', (req, res) => {
   res.json(rows.map(r => r.exercise));
 });
 
-// Body: { date, exercise, userId, sets: [{ reps, weight }, ...] }
+// Body: { date, exercise, userId, timeOfDay?, sets: [{ reps, weight }, ...] }
 app.post('/api/workouts', (req, res) => {
-  const { date, exercise, userId, sets } = req.body;
+  const { date, exercise, userId, timeOfDay, sets } = req.body;
   if (!date || !exercise || !userId || !Array.isArray(sets) || sets.length === 0) {
     return res.status(400).json({ error: 'date, exercise, userId, and at least one set are required' });
+  }
+  const today = new Date().toISOString().split('T')[0];
+  if (date > today) {
+    return res.status(400).json({ error: 'Cannot log workouts in the future' });
   }
   for (const s of sets) {
     if (!s.reps || s.weight == null) {
@@ -56,29 +60,39 @@ app.post('/api/workouts', (req, res) => {
   }
 
   const prevBest = db.prepare(`
-    SELECT MAX(s.weight * (1 + s.reps / 30.0)) AS e1rm
+    SELECT s.weight, s.reps
     FROM workouts w
     JOIN sets s ON s.workout_id = w.id
     WHERE w.user_id = ? AND w.exercise = ?
+    ORDER BY s.weight DESC, s.reps DESC
+    LIMIT 1
   `).get(userId, exercise.trim());
 
   const insertWorkout = db.prepare(
-    'INSERT INTO workouts (date, exercise, user_id) VALUES (?, ?, ?)'
+    'INSERT INTO workouts (date, exercise, user_id, time_of_day) VALUES (?, ?, ?, ?)'
   );
   const insertSet = db.prepare(
     'INSERT INTO sets (workout_id, set_number, reps, weight) VALUES (?, ?, ?, ?)'
   );
 
   const workoutId = db.transaction(() => {
-    const { lastInsertRowid } = insertWorkout.run(date, exercise.trim(), userId);
+    const { lastInsertRowid } = insertWorkout.run(date, exercise.trim(), userId, timeOfDay || null);
     sets.forEach((s, i) => insertSet.run(lastInsertRowid, i + 1, s.reps, s.weight));
     return lastInsertRowid;
   })();
 
-  const e1rm = (s) => s.weight * (1 + s.reps / 30.0);
-  const newBestE1rm = sets.reduce((best, s) => Math.max(best, e1rm(s)), 0);
-  const newPR = !prevBest.e1rm || newBestE1rm > prevBest.e1rm;
-  const prSet = newPR ? sets.reduce((best, s) => e1rm(s) > e1rm(best) ? s : best) : null;
+  const beatsPR = (s) => {
+    if (!prevBest) return true;
+    if (s.weight > prevBest.weight) return true;
+    if (s.weight === prevBest.weight && s.reps > prevBest.reps) return true;
+    return false;
+  };
+  const newPR = sets.some(beatsPR);
+  const prSet = newPR
+    ? sets.reduce((best, s) =>
+        s.weight > best.weight || (s.weight === best.weight && s.reps > best.reps) ? s : best
+      )
+    : null;
 
   res.status(201).json({ id: workoutId, newPR, prSet });
 });
@@ -88,7 +102,6 @@ app.delete('/api/workouts/:id', (req, res) => {
   res.status(204).send();
 });
 
-// Best set per exercise for a user, ranked by estimated 1RM (Epley: weight * (1 + reps/30))
 app.get('/api/prs', (req, res) => {
   const { userId } = req.query;
   if (!userId) return res.status(400).json({ error: 'userId is required' });
@@ -98,16 +111,15 @@ app.get('/api/prs', (req, res) => {
         w.exercise,
         s.weight,
         s.reps,
-        ROUND(s.weight * (1 + s.reps / 30.0), 1) AS e1rm,
         ROW_NUMBER() OVER (
           PARTITION BY w.exercise
-          ORDER BY s.weight * (1 + s.reps / 30.0) DESC
+          ORDER BY s.weight DESC, s.reps DESC
         ) AS rn
       FROM workouts w
       JOIN sets s ON s.workout_id = w.id
       WHERE w.user_id = ?
     )
-    SELECT exercise, weight, reps, e1rm FROM ranked WHERE rn = 1
+    SELECT exercise, weight, reps FROM ranked WHERE rn = 1
     ORDER BY exercise ASC
   `).all(userId);
   res.json(rows);

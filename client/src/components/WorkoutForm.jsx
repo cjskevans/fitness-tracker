@@ -23,6 +23,7 @@ const selectStyle = {
 
 export default function WorkoutForm({ userId, onLogged }) {
   const [date, setDate] = useState(today());
+  const [timeOfDay, setTimeOfDay] = useState('');
   const [muscleGroup, setMuscleGroup] = useState('');
   const [exercise, setExercise] = useState('');
   const [sets, setSets] = useState([emptySet()]);
@@ -46,6 +47,7 @@ export default function WorkoutForm({ userId, onLogged }) {
     try {
       const result = await logWorkout({
         date,
+        timeOfDay: timeOfDay || undefined,
         exercise,
         userId,
         sets: sets.map(s => ({ reps: Number(s.reps), weight: Number(s.weight) })),
@@ -54,6 +56,7 @@ export default function WorkoutForm({ userId, onLogged }) {
         ? `New personal record! ${result.prSet.weight} lbs x ${result.prSet.reps} reps`
         : 'Logged!';
       setStatus({ ok: true, msg });
+      setTimeOfDay('');
       setMuscleGroup('');
       setExercise('');
       setSets([emptySet()]);
@@ -68,14 +71,31 @@ export default function WorkoutForm({ userId, onLogged }) {
     <div>
       <h2 style={{ marginTop: 0 }}>Log Workout</h2>
       <form onSubmit={submit}>
-        <label style={labelStyle}>Date</label>
-        <input
-          type="date"
-          value={date}
-          onChange={e => setDate(e.target.value)}
-          required
-          style={{ ...selectStyle }}
-        />
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', marginBottom: '1rem' }}>
+          <div style={{ flex: 1 }}>
+            <label style={labelStyle}>Date</label>
+            <input
+              type="date"
+              value={date}
+              max={today()}
+              onChange={e => setDate(e.target.value)}
+              required
+              style={{ ...selectStyle, marginBottom: 0 }}
+            />
+          </div>
+          <div style={{ width: 100 }}>
+            <label style={labelStyle}>Time <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label>
+            <select
+              value={timeOfDay}
+              onChange={e => setTimeOfDay(e.target.value)}
+              style={{ ...selectStyle, marginBottom: 0 }}
+            >
+              <option value="">—</option>
+              <option value="AM">AM</option>
+              <option value="PM">PM</option>
+            </select>
+          </div>
+        </div>
 
         <label style={labelStyle}>Muscle Group</label>
         <select value={muscleGroup} onChange={handleMuscleGroupChange} required style={selectStyle}>
@@ -170,8 +190,8 @@ const removeBtn = {
 };
 const addSetBtn = {
   marginTop: '0.25rem', padding: '0.4rem 0.9rem', fontSize: '0.875rem',
-  cursor: 'pointer', background: '#f3f4f6', border: '1px solid #d1d5db',
-  borderRadius: 4, color: '#374151',
+  cursor: 'pointer', background: '#dcfce7', border: '1px solid #86efac',
+  borderRadius: 4, color: '#166534',
 };
 const submitBtn = {
   padding: '0.6rem 1.4rem', fontSize: '1rem', cursor: 'pointer',

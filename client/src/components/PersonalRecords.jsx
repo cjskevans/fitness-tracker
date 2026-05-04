@@ -19,7 +19,6 @@ export default function PersonalRecords({ userId, refreshKey }) {
           <th style={th}>Exercise</th>
           <th style={th}>Weight</th>
           <th style={th}>Reps</th>
-          <th style={th}>Est. 1RM</th>
         </tr>
       </thead>
       <tbody>
@@ -28,7 +27,6 @@ export default function PersonalRecords({ userId, refreshKey }) {
             <td style={td}>{pr.exercise}</td>
             <td style={td}>{pr.weight} lbs</td>
             <td style={td}>{pr.reps}</td>
-            <td style={td}>{pr.e1rm} lbs</td>
           </tr>
         ))}
       </tbody>

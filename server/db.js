@@ -36,4 +36,13 @@ db.exec(`
   );
 `);
 
+// Add time_of_day column if missing (nullable: 'AM', 'PM', or null)
+const hasTimeOfDay = db.prepare(
+  "SELECT COUNT(*) AS n FROM pragma_table_info('workouts') WHERE name='time_of_day'"
+).get().n > 0;
+
+if (!hasTimeOfDay) {
+  db.exec("ALTER TABLE workouts ADD COLUMN time_of_day TEXT");
+}
+
 module.exports = db;
