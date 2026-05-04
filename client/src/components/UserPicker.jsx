@@ -22,7 +22,7 @@ export default function UserPicker({ onUser }) {
     <div style={overlay}>
       <div style={card}>
         <h1 style={{ marginTop: 0, fontSize: '1.5rem' }}>Fitness Tracker</h1>
-        <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
           Enter a username to get started. If you've used one before, entering it again will load your data.
         </p>
         <form onSubmit={submit}>
@@ -46,17 +46,17 @@ export default function UserPicker({ onUser }) {
 const overlay = {
   position: 'fixed', inset: 0,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  background: '#f9fafb',
+  background: 'var(--bg)',
 };
 
 const card = {
-  background: '#fff', padding: '2.5rem', borderRadius: 8,
+  background: 'var(--surface)', padding: '2.5rem', borderRadius: 8,
   boxShadow: '0 2px 12px rgba(0,0,0,0.1)', width: 340,
 };
 
 const inputStyle = {
   display: 'block', width: '100%', padding: '0.6rem',
-  fontSize: '1rem', border: '1px solid #d1d5db', borderRadius: 4,
+  fontSize: '1rem', border: '1px solid var(--border-input)', borderRadius: 4,
   marginBottom: '1rem', boxSizing: 'border-box',
 };
 

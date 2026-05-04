@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import WorkoutForm from './components/WorkoutForm';
 import ProgressChart from './components/ProgressChart';
 import PersonalRecords from './components/PersonalRecords';
+import WorkoutHistory from './components/WorkoutHistory';
 import UserPicker from './components/UserPicker';
-import { getExercises, getWorkouts } from './api';
+import { getExercises, getChartData } from './api';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -11,6 +12,13 @@ export default function App() {
   const [selectedExercise, setSelectedExercise] = useState('');
   const [chartData, setChartData] = useState([]);
   const [prRefreshKey, setPrRefreshKey] = useState(0);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('ft_dark') === 'true');
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode);
+    localStorage.setItem('ft_dark', darkMode);
+  }, [darkMode]);
 
   useEffect(() => {
     const saved = localStorage.getItem('ft_user');
@@ -23,14 +31,15 @@ export default function App() {
 
   useEffect(() => {
     if (selectedExercise && user) {
-      getWorkouts(selectedExercise, user.id).then(setChartData);
+      getChartData(selectedExercise, user.id).then(setChartData);
     }
   }, [selectedExercise, user]);
 
-  const handleLogged = () => {
+  const refreshAll = () => {
     getExercises(user.id).then(setExercises);
-    if (selectedExercise) getWorkouts(selectedExercise, user.id).then(setChartData);
+    if (selectedExercise) getChartData(selectedExercise, user.id).then(setChartData);
     setPrRefreshKey(k => k + 1);
+    setHistoryRefreshKey(k => k + 1);
   };
 
   const switchUser = () => {
@@ -47,22 +56,26 @@ export default function App() {
     <div style={{ maxWidth: 960, margin: '0 auto', padding: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '2rem' }}>
         <h1 style={{ margin: 0 }}>Fitness Tracker</h1>
-        <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {user.username} &middot;{' '}
           <button onClick={switchUser} style={switchBtn}>Switch user</button>
+          &middot;{' '}
+          <button onClick={() => setDarkMode(d => !d)} style={toggleBtn}>
+            {darkMode ? 'Light mode' : 'Dark mode'}
+          </button>
         </span>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
         <div style={card}>
-          <WorkoutForm userId={user.id} onLogged={handleLogged} />
+          <WorkoutForm userId={user.id} onLogged={refreshAll} />
         </div>
         <div style={card}>
           <h2 style={{ marginTop: 0 }}>Progress</h2>
           <select
             value={selectedExercise}
             onChange={e => setSelectedExercise(e.target.value)}
-            style={{ marginBottom: '1.5rem', padding: '0.5rem', width: '100%', fontSize: '1rem' }}
+            style={{ marginBottom: '1.5rem', padding: '0.5rem', width: '100%', fontSize: '1rem', border: '1px solid var(--border-input)', borderRadius: 4 }}
           >
             <option value="">Select an exercise</option>
             {exercises.map(ex => (
@@ -71,7 +84,7 @@ export default function App() {
           </select>
           {selectedExercise
             ? <ProgressChart data={chartData} />
-            : <p style={{ color: '#6b7280' }}>Select an exercise to see your progress.</p>}
+            : <p style={{ color: 'var(--text-muted)' }}>Select an exercise to see your progress.</p>}
         </div>
       </div>
 
@@ -79,13 +92,18 @@ export default function App() {
         <h2 style={{ marginTop: 0 }}>Personal Records</h2>
         <PersonalRecords userId={user.id} refreshKey={prRefreshKey} />
       </div>
+
+      <div style={{ ...card, marginTop: '1.5rem' }}>
+        <h2 style={{ marginTop: 0 }}>Workout History</h2>
+        <WorkoutHistory userId={user.id} refreshKey={historyRefreshKey} onChanged={refreshAll} />
+      </div>
     </div>
   );
 }
 
 const card = {
-  background: '#fff',
-  border: '1px solid #e5e7eb',
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
   borderRadius: 8,
   padding: '1.5rem',
   boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
@@ -94,4 +112,10 @@ const card = {
 const switchBtn = {
   background: 'none', border: 'none', color: '#2563eb',
   cursor: 'pointer', padding: 0, fontSize: '0.875rem',
+};
+
+const toggleBtn = {
+  background: 'none', border: '1px solid var(--border)',
+  borderRadius: 20, padding: '0.15rem 0.6rem',
+  fontSize: '0.8rem', cursor: 'pointer', color: 'var(--text-muted)',
 };

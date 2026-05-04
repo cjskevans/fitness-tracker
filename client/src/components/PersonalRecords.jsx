@@ -9,7 +9,7 @@ export default function PersonalRecords({ userId, refreshKey }) {
   }, [userId, refreshKey]);
 
   if (!prs.length) {
-    return <p style={{ color: '#6b7280' }}>No workouts logged yet.</p>;
+    return <p style={{ color: 'var(--text-muted)' }}>You have not logged any workouts yet</p>;
   }
 
   return (
@@ -34,5 +34,5 @@ export default function PersonalRecords({ userId, refreshKey }) {
   );
 }
 
-const th = { padding: '0.5rem 0.75rem', fontWeight: 600, color: '#374151' };
-const td = { padding: '0.5rem 0.75rem', color: '#111827' };
+const th = { padding: '0.5rem 0.75rem', fontWeight: 600, color: 'var(--text-secondary)' };
+const td = { padding: '0.5rem 0.75rem', color: 'var(--text-primary)' };

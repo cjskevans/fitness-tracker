@@ -6,7 +6,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Create or retrieve a user by username
+// ── Users ────────────────────────────────────────────────────────────────────
+
 app.post('/api/users', (req, res) => {
   const username = req.body.username?.trim();
   if (!username) return res.status(400).json({ error: 'Username is required' });
@@ -15,95 +16,193 @@ app.post('/api/users', (req, res) => {
   res.json(user);
 });
 
-// Chart data: one point per session (max weight that session)
-app.get('/api/workouts', (req, res) => {
-  const { exercise, userId } = req.query;
-  if (!userId) {
-    return res.status(400).json({ error: 'userId is required' });
-  }
+// ── Sessions ─────────────────────────────────────────────────────────────────
 
-  if (exercise) {
-    const rows = db.prepare(`
-      SELECT w.id, w.date, MAX(s.weight) AS weight
-      FROM workouts w
-      JOIN sets s ON s.workout_id = w.id
-      WHERE w.user_id = ? AND w.exercise = ?
-      GROUP BY w.id
-      ORDER BY w.date ASC
-    `).all(userId, exercise);
-    return res.json(rows);
-  }
-  const rows = db.prepare('SELECT * FROM workouts WHERE user_id = ? ORDER BY date DESC').all(userId);
-  res.json(rows);
-});
+// Body: { userId, date, timeOfDay?, exercises: [{ exercise, sets: [{ reps, weight }] }] }
+app.post('/api/sessions', (req, res) => {
+  const { userId, date, timeOfDay, exercises } = req.body;
 
-app.get('/api/exercises', (req, res) => {
-  const { userId } = req.query;
-  if (!userId) return res.status(400).json({ error: 'userId is required' });
-  const rows = db.prepare(
-    'SELECT DISTINCT exercise FROM workouts WHERE user_id = ? ORDER BY exercise ASC'
-  ).all(userId);
-  res.json(rows.map(r => r.exercise));
-});
-
-// Body: { date, exercise, userId, timeOfDay?, sets: [{ reps, weight }, ...] }
-app.post('/api/workouts', (req, res) => {
-  const { date, exercise, userId, timeOfDay, sets } = req.body;
-  if (!date || !exercise || !userId || !Array.isArray(sets) || sets.length === 0) {
-    return res.status(400).json({ error: 'date, exercise, userId, and at least one set are required' });
+  if (!userId || !date || !Array.isArray(exercises) || exercises.length === 0) {
+    return res.status(400).json({ error: 'userId, date, and at least one exercise are required' });
   }
   const today = new Date().toISOString().split('T')[0];
   if (date > today) {
     return res.status(400).json({ error: 'Cannot log workouts in the future' });
   }
-  for (const s of sets) {
-    if (!s.reps || s.reps <= 0 || s.weight == null || s.weight <= 0) {
-      return res.status(400).json({ error: 'Each set requires reps and weight greater than 0' });
+  for (const ex of exercises) {
+    if (!ex.exercise) return res.status(400).json({ error: 'Each exercise must have a name' });
+    if (!Array.isArray(ex.sets) || ex.sets.length === 0) {
+      return res.status(400).json({ error: `${ex.exercise} must have at least one set` });
+    }
+    for (const s of ex.sets) {
+      if (!s.reps || s.reps <= 0 || s.weight == null || s.weight <= 0) {
+        return res.status(400).json({ error: 'Each set requires reps and weight greater than 0' });
+      }
     }
   }
 
-  const prevBest = db.prepare(`
-    SELECT s.weight, s.reps
-    FROM workouts w
-    JOIN sets s ON s.workout_id = w.id
-    WHERE w.user_id = ? AND w.exercise = ?
-    ORDER BY s.weight DESC, s.reps DESC
-    LIMIT 1
-  `).get(userId, exercise.trim());
+  // Snapshot previous bests before inserting
+  const prChecks = exercises.map(ex => ({
+    exercise: ex.exercise.trim(),
+    sets: ex.sets,
+    prevBest: db.prepare(`
+      SELECT st.weight, st.reps
+      FROM sessions s
+      JOIN workout_exercises we ON we.session_id = s.id
+      JOIN sets st ON st.workout_exercise_id = we.id
+      WHERE s.user_id = ? AND we.exercise = ?
+      ORDER BY st.weight DESC, st.reps DESC
+      LIMIT 1
+    `).get(userId, ex.exercise.trim()),
+  }));
 
-  const insertWorkout = db.prepare(
-    'INSERT INTO workouts (date, exercise, user_id, time_of_day) VALUES (?, ?, ?, ?)'
-  );
-  const insertSet = db.prepare(
-    'INSERT INTO sets (workout_id, set_number, reps, weight) VALUES (?, ?, ?, ?)'
-  );
+  const insertSession = db.prepare('INSERT INTO sessions (user_id, date, time_of_day) VALUES (?, ?, ?)');
+  const insertExercise = db.prepare('INSERT INTO workout_exercises (session_id, exercise, order_num) VALUES (?, ?, ?)');
+  const insertSet = db.prepare('INSERT INTO sets (workout_exercise_id, set_number, reps, weight) VALUES (?, ?, ?, ?)');
 
-  const workoutId = db.transaction(() => {
-    const { lastInsertRowid } = insertWorkout.run(date, exercise.trim(), userId, timeOfDay || null);
-    sets.forEach((s, i) => insertSet.run(lastInsertRowid, i + 1, s.reps, s.weight));
-    return lastInsertRowid;
+  const sessionId = db.transaction(() => {
+    const { lastInsertRowid: sid } = insertSession.run(userId, date, timeOfDay || null);
+    exercises.forEach((ex, ei) => {
+      const { lastInsertRowid: exId } = insertExercise.run(sid, ex.exercise.trim(), ei + 1);
+      ex.sets.forEach((s, si) => insertSet.run(exId, si + 1, s.reps, s.weight));
+    });
+    return sid;
   })();
 
-  const beatsPR = (s) => {
+  const beatsPR = (prevBest, s) => {
     if (!prevBest) return true;
     if (s.weight > prevBest.weight) return true;
     if (s.weight === prevBest.weight && s.reps > prevBest.reps) return true;
     return false;
   };
-  const newPR = sets.some(beatsPR);
-  const prSet = newPR
-    ? sets.reduce((best, s) =>
-        s.weight > best.weight || (s.weight === best.weight && s.reps > best.reps) ? s : best
-      )
-    : null;
 
-  res.status(201).json({ id: workoutId, newPR, prSet });
+  const newPRs = prChecks
+    .filter(({ prevBest, sets }) => sets.some(s => beatsPR(prevBest, s)))
+    .map(({ exercise, prevBest, sets }) => ({
+      exercise,
+      prSet: sets.reduce((best, s) =>
+        s.weight > best.weight || (s.weight === best.weight && s.reps > best.reps) ? s : best
+      ),
+    }));
+
+  res.status(201).json({ id: sessionId, newPRs });
 });
 
-app.delete('/api/workouts/:id', (req, res) => {
-  db.prepare('DELETE FROM workouts WHERE id = ?').run(req.params.id);
+app.get('/api/sessions', (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+
+  const rows = db.prepare(`
+    SELECT
+      s.id AS session_id, s.date, s.time_of_day,
+      we.id AS we_id, we.exercise, we.order_num,
+      st.id AS set_id, st.set_number, st.reps, st.weight
+    FROM sessions s
+    LEFT JOIN workout_exercises we ON we.session_id = s.id
+    LEFT JOIN sets st ON st.workout_exercise_id = we.id
+    WHERE s.user_id = ?
+    ORDER BY s.date DESC, s.id DESC, we.order_num ASC, st.set_number ASC
+  `).all(userId);
+
+  const sessionMap = new Map();
+  const result = [];
+  for (const row of rows) {
+    if (!sessionMap.has(row.session_id)) {
+      const session = { id: row.session_id, date: row.date, time_of_day: row.time_of_day, exercises: [] };
+      sessionMap.set(row.session_id, session);
+      result.push(session);
+    }
+    const session = sessionMap.get(row.session_id);
+    if (row.we_id) {
+      let ex = session.exercises.find(e => e.id === row.we_id);
+      if (!ex) {
+        ex = { id: row.we_id, exercise: row.exercise, order_num: row.order_num, sets: [] };
+        session.exercises.push(ex);
+      }
+      if (row.set_id) {
+        ex.sets.push({ id: row.set_id, set_number: row.set_number, reps: row.reps, weight: row.weight });
+      }
+    }
+  }
+  res.json(result);
+});
+
+app.put('/api/sessions/:id', (req, res) => {
+  const { date, timeOfDay, exercises } = req.body;
+  const { id } = req.params;
+
+  if (!date || !Array.isArray(exercises) || exercises.length === 0) {
+    return res.status(400).json({ error: 'date and at least one exercise are required' });
+  }
+  const today = new Date().toISOString().split('T')[0];
+  if (date > today) {
+    return res.status(400).json({ error: 'Cannot log workouts in the future' });
+  }
+  for (const ex of exercises) {
+    if (!ex.exercise) return res.status(400).json({ error: 'Each exercise must have a name' });
+    if (!Array.isArray(ex.sets) || ex.sets.length === 0) {
+      return res.status(400).json({ error: `${ex.exercise} must have at least one set` });
+    }
+    for (const s of ex.sets) {
+      if (!s.reps || s.reps <= 0 || s.weight == null || s.weight <= 0) {
+        return res.status(400).json({ error: 'Each set requires reps and weight greater than 0' });
+      }
+    }
+  }
+
+  const insertExercise = db.prepare('INSERT INTO workout_exercises (session_id, exercise, order_num) VALUES (?, ?, ?)');
+  const insertSet = db.prepare('INSERT INTO sets (workout_exercise_id, set_number, reps, weight) VALUES (?, ?, ?, ?)');
+
+  db.transaction(() => {
+    db.prepare('UPDATE sessions SET date = ?, time_of_day = ? WHERE id = ?').run(date, timeOfDay || null, id);
+    db.prepare('DELETE FROM workout_exercises WHERE session_id = ?').run(id);
+    exercises.forEach((ex, ei) => {
+      const { lastInsertRowid: exId } = insertExercise.run(id, ex.exercise.trim(), ei + 1);
+      ex.sets.forEach((s, si) => insertSet.run(exId, si + 1, s.reps, s.weight));
+    });
+  })();
+
+  res.json({ ok: true });
+});
+
+app.delete('/api/sessions/:id', (req, res) => {
+  db.prepare('DELETE FROM sessions WHERE id = ?').run(req.params.id);
   res.status(204).send();
 });
+
+// ── Exercises (distinct, for progress dropdown) ───────────────────────────────
+
+app.get('/api/exercises', (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  const rows = db.prepare(`
+    SELECT DISTINCT we.exercise
+    FROM sessions s
+    JOIN workout_exercises we ON we.session_id = s.id
+    WHERE s.user_id = ?
+    ORDER BY we.exercise ASC
+  `).all(userId);
+  res.json(rows.map(r => r.exercise));
+});
+
+// ── Chart data (max weight per session for one exercise) ──────────────────────
+
+app.get('/api/workouts', (req, res) => {
+  const { exercise, userId } = req.query;
+  if (!userId || !exercise) return res.status(400).json({ error: 'userId and exercise are required' });
+  const rows = db.prepare(`
+    SELECT s.id, s.date, MAX(st.weight) AS weight
+    FROM sessions s
+    JOIN workout_exercises we ON we.session_id = s.id
+    JOIN sets st ON st.workout_exercise_id = we.id
+    WHERE s.user_id = ? AND we.exercise = ?
+    GROUP BY s.id
+    ORDER BY s.date ASC
+  `).all(userId, exercise);
+  res.json(rows);
+});
+
+// ── Personal records ──────────────────────────────────────────────────────────
 
 app.get('/api/prs', (req, res) => {
   const { userId } = req.query;
@@ -111,16 +210,17 @@ app.get('/api/prs', (req, res) => {
   const rows = db.prepare(`
     WITH ranked AS (
       SELECT
-        w.exercise,
-        s.weight,
-        s.reps,
+        we.exercise,
+        st.weight,
+        st.reps,
         ROW_NUMBER() OVER (
-          PARTITION BY w.exercise
-          ORDER BY s.weight DESC, s.reps DESC
+          PARTITION BY we.exercise
+          ORDER BY st.weight DESC, st.reps DESC
         ) AS rn
-      FROM workouts w
-      JOIN sets s ON s.workout_id = w.id
-      WHERE w.user_id = ?
+      FROM sessions s
+      JOIN workout_exercises we ON we.session_id = s.id
+      JOIN sets st ON st.workout_exercise_id = we.id
+      WHERE s.user_id = ?
     )
     SELECT exercise, weight, reps FROM ranked WHERE rn = 1
     ORDER BY exercise ASC

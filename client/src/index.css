@@ -1,12 +1,39 @@
+:root {
+  --bg:             #f9fafb;
+  --surface:        #ffffff;
+  --surface-alt:    #fafafa;
+  --surface-subtle: #f9fafb;
+  --border:         #e5e7eb;
+  --border-input:   #d1d5db;
+  --text-primary:   #111827;
+  --text-secondary: #374151;
+  --text-muted:     #6b7280;
+  --text-subtle:    #9ca3af;
+}
+
+html.dark {
+  --bg:             #0f172a;
+  --surface:        #1e293b;
+  --surface-alt:    #162032;
+  --surface-subtle: #1a2744;
+  --border:         #334155;
+  --border-input:   #475569;
+  --text-primary:   #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted:     #94a3b8;
+  --text-subtle:    #64748b;
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  background: #f9fafb;
-  color: #111827;
+  background: var(--bg);
+  color: var(--text-primary);
   font-family: system-ui, sans-serif;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 label {
@@ -14,4 +41,19 @@ label {
   font-size: 0.875rem;
   font-weight: 500;
   margin-bottom: 0.25rem;
+}
+
+input, select {
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
 }
