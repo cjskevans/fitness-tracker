@@ -25,3 +25,15 @@ export const getExercises = (userId) =>
 
 export const getPRs = (userId) =>
   api.get('/prs', { params: { userId } }).then(r => r.data);
+
+export const getTemplates = (userId) =>
+  api.get('/templates', { params: { userId } }).then(r => r.data);
+
+export const createTemplate = (data) =>
+  api.post('/templates', data).then(r => r.data);
+
+export const deleteTemplateById = (id) =>
+  api.delete(`/templates/${id}`);
+
+export const getLastTemplateSession = (templateId) =>
+  api.get(`/templates/${templateId}/last-session`).then(r => r.data);

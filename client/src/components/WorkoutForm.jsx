@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { logSession } from '../api';
+import React, { useState, useEffect } from 'react';
+import { logSession, getTemplates, createTemplate, deleteTemplateById, getLastTemplateSession } from '../api';
 import exercises from '../exercises';
 
 const today = () => new Date().toISOString().split('T')[0];
@@ -7,11 +7,41 @@ const muscleGroups = Object.keys(exercises);
 const emptySet = () => ({ reps: '', weight: '' });
 const emptyBlock = () => ({ id: Date.now() + Math.random(), muscleGroup: '', exercise: '', customName: '', sets: [emptySet()] });
 
+const formatDate = (dateStr) => {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const blockFromExerciseName = (name) => {
+  for (const [group, list] of Object.entries(exercises)) {
+    if (list.includes(name)) {
+      return { id: Date.now() + Math.random(), muscleGroup: group, exercise: name, customName: '', sets: [emptySet()] };
+    }
+  }
+  return { id: Date.now() + Math.random(), muscleGroup: '', exercise: '__custom__', customName: name, sets: [emptySet()] };
+};
+
 export default function WorkoutForm({ userId, onLogged }) {
   const [date, setDate] = useState(today());
   const [timeOfDay, setTimeOfDay] = useState('');
   const [blocks, setBlocks] = useState([emptyBlock()]);
   const [status, setStatus] = useState(null);
+
+  const [templates, setTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [templateName, setTemplateName] = useState('');
+  const [templateMsg, setTemplateMsg] = useState(null);
+  const [showTemplateTip, setShowTemplateTip] = useState(false);
+  const [lastSession, setLastSession] = useState(null);
+
+  useEffect(() => {
+    getTemplates(userId).then(setTemplates);
+  }, [userId]);
+
+  useEffect(() => {
+    if (!selectedTemplate) { setLastSession(null); return; }
+    getLastTemplateSession(Number(selectedTemplate)).then(setLastSession);
+  }, [selectedTemplate]);
 
   const addBlock = () => setBlocks(prev => [...prev, emptyBlock()]);
   const removeBlock = (i) => setBlocks(prev => prev.filter((_, idx) => idx !== i));
@@ -32,6 +62,38 @@ export default function WorkoutForm({ userId, onLogged }) {
   const updateSet = (bi, si, field, value) =>
     setBlocks(prev => prev.map((b, idx) => idx === bi
       ? { ...b, sets: b.sets.map((s, i) => i === si ? { ...s, [field]: value } : s) } : b));
+
+  const loadTemplate = () => {
+    const tpl = templates.find(t => t.id === Number(selectedTemplate));
+    if (!tpl) return;
+    setBlocks(tpl.exercises.map(blockFromExerciseName));
+    setSelectedTemplate('');
+  };
+
+  const saveAsTemplate = async () => {
+    const name = templateName.trim();
+    if (!name) return;
+    const exerciseList = blocks
+      .map(b => b.exercise === '__custom__' ? b.customName.trim() : b.exercise)
+      .filter(Boolean);
+    if (!exerciseList.length) return;
+    try {
+      await createTemplate({ userId, name, exercises: exerciseList });
+      setTemplates(await getTemplates(userId));
+      setTemplateName('');
+      setTemplateMsg({ ok: true, msg: `Template "${name}" saved!` });
+    } catch {
+      setTemplateMsg({ ok: false, msg: 'Failed to save template.' });
+    }
+    setTimeout(() => setTemplateMsg(null), 3000);
+  };
+
+  const deleteTemplate = async () => {
+    if (!selectedTemplate) return;
+    await deleteTemplateById(Number(selectedTemplate));
+    setTemplates(await getTemplates(userId));
+    setSelectedTemplate('');
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -71,6 +133,47 @@ export default function WorkoutForm({ userId, onLogged }) {
         Record the exercises, sets, and weight from your session.
       </p>
       <form onSubmit={submit}>
+
+        {templates.length > 0 && (
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', alignItems: 'center' }}>
+            <select
+              value={selectedTemplate}
+              onChange={e => setSelectedTemplate(e.target.value)}
+              style={{ ...fieldStyle, flex: 1, marginBottom: 0 }}
+            >
+              <option value="">Load a template...</option>
+              {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+            <button type="button" onClick={loadTemplate} disabled={!selectedTemplate} style={loadBtnStyle}>
+              Load
+            </button>
+            <button type="button" onClick={deleteTemplate} disabled={!selectedTemplate} style={deleteTemplateBtnStyle}>
+              Delete
+            </button>
+          </div>
+        )}
+
+        {selectedTemplate && (
+          <div style={lastSessionCard}>
+            {lastSession ? (
+              <>
+                <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.4rem' }}>
+                  Last session — {formatDate(lastSession.date)}{lastSession.time_of_day ? ` (${lastSession.time_of_day})` : ''}
+                </div>
+                {lastSession.exercises.map(ex => (
+                  <div key={ex.exercise} style={{ fontSize: '0.8rem', marginBottom: '0.15rem' }}>
+                    <span style={{ fontWeight: 500 }}>{ex.exercise}:</span>{' '}
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      {ex.sets.map(s => `${s.weight} × ${s.reps}`).join(',  ')}
+                    </span>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No previous session found for this template.</span>
+            )}
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', alignItems: 'flex-end' }}>
           <div style={{ flex: 1 }}>
@@ -164,6 +267,33 @@ export default function WorkoutForm({ userId, onLogged }) {
 
         <button type="button" onClick={addBlock} style={addExerciseBtnStyle}>+ Add Exercise</button>
 
+        <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <input
+            type="text"
+            value={templateName}
+            onChange={e => setTemplateName(e.target.value)}
+            placeholder="Template name..."
+            style={{ ...fieldStyle, flex: 1, marginBottom: 0 }}
+          />
+          <div style={{ position: 'relative' }}
+            onMouseEnter={() => setShowTemplateTip(true)}
+            onMouseLeave={() => setShowTemplateTip(false)}>
+            <button type="button" onClick={saveAsTemplate} disabled={!templateName.trim()} style={saveTemplateBtnStyle}>
+              Save as template
+            </button>
+            {showTemplateTip && (
+              <div style={tooltipStyle}>
+                Saves the current exercise list as a named template. Load it later to pre-fill your workout instead of picking exercises from scratch.
+              </div>
+            )}
+          </div>
+        </div>
+        {templateMsg && (
+          <p style={{ margin: '0.3rem 0 0', fontSize: '0.875rem', color: templateMsg.ok ? '#16a34a' : '#dc2626' }}>
+            {templateMsg.msg}
+          </p>
+        )}
+
         <div style={{ marginTop: '1.25rem' }}>
           <button type="submit" style={submitBtnStyle}>Log Workout</button>
         </div>
@@ -212,4 +342,26 @@ const addExerciseBtnStyle = {
 const submitBtnStyle = {
   padding: '0.6rem 1.4rem', fontSize: '1rem', cursor: 'pointer',
   background: '#2563eb', color: '#fff', border: 'none', borderRadius: 4,
+};
+const loadBtnStyle = {
+  padding: '0.5rem 0.75rem', fontSize: '0.875rem', cursor: 'pointer', whiteSpace: 'nowrap',
+  background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: 4, color: '#1d4ed8',
+};
+const deleteTemplateBtnStyle = {
+  padding: '0.5rem 0.75rem', fontSize: '0.875rem', cursor: 'pointer', whiteSpace: 'nowrap',
+  background: 'var(--surface)', border: '1px solid #fca5a5', borderRadius: 4, color: '#dc2626',
+};
+const saveTemplateBtnStyle = {
+  padding: '0.5rem 0.75rem', fontSize: '0.875rem', cursor: 'pointer', whiteSpace: 'nowrap',
+  background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 4, color: '#166534',
+};
+const lastSessionCard = {
+  background: 'var(--surface-subtle)', border: '1px solid var(--border)',
+  borderRadius: 6, padding: '0.6rem 0.75rem', marginBottom: '1.25rem',
+};
+const tooltipStyle = {
+  position: 'absolute', bottom: 'calc(100% + 6px)', right: 0,
+  background: '#1f2937', color: '#fff', fontSize: '0.75rem', lineHeight: 1.4,
+  padding: '0.4rem 0.6rem', borderRadius: 4, width: 230,
+  pointerEvents: 'none', zIndex: 10,
 };
