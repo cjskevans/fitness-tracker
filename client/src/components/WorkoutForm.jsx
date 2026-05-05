@@ -135,7 +135,7 @@ export default function WorkoutForm({ userId, onLogged }) {
       <form onSubmit={submit}>
 
         {templates.length > 0 && (
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', alignItems: 'center' }}>
+          <div className="template-row">
             <select
               value={selectedTemplate}
               onChange={e => setSelectedTemplate(e.target.value)}
@@ -267,7 +267,7 @@ export default function WorkoutForm({ userId, onLogged }) {
 
         <button type="button" onClick={addBlock} style={addExerciseBtnStyle}>+ Add Exercise</button>
 
-        <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div className="save-template-row">
           <input
             type="text"
             value={templateName}

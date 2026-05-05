@@ -53,8 +53,8 @@ export default function App() {
   if (!user) return <UserPicker onUser={setUser} />;
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto', padding: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '2rem' }}>
+    <div className="app-container">
+      <div className="app-header">
         <h1 style={{ margin: 0 }}>Fitness Tracker</h1>
         <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {user.username} &middot;{' '}
@@ -66,12 +66,12 @@ export default function App() {
         </span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+      <div className="main-grid">
         <div style={card}>
           <WorkoutForm userId={user.id} onLogged={refreshAll} />
         </div>
         <div style={card}>
-          <h2 style={{ marginTop: 0 }}>Progress</h2>
+          <h2 style={{ marginTop: 0 }}>Progress Chart</h2>
           <p style={desc}>Select an exercise to see your max weight over time.</p>
           <select
             value={selectedExercise}
