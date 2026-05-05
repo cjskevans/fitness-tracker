@@ -228,4 +228,8 @@ app.get('/api/prs', (req, res) => {
   res.json(rows);
 });
 
-app.listen(3001, () => console.log('Server running on http://localhost:3001'));
+if (require.main === module) {
+  app.listen(3001, () => console.log('Server running on http://localhost:3001'));
+}
+
+module.exports = app;
