@@ -228,6 +228,34 @@ app.get('/api/prs', (req, res) => {
   res.json(rows);
 });
 
+// ── Settings ──────────────────────────────────────────────────────────────────
+
+app.get('/api/settings', (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  const row = db.prepare('SELECT * FROM user_settings WHERE user_id = ?').get(userId);
+  if (!row) return res.json({ defaultSetCount: 3, showTimeOfDay: true, darkMode: false });
+  res.json({
+    defaultSetCount: row.default_set_count,
+    showTimeOfDay: row.show_time_of_day === 1,
+    darkMode: row.dark_mode === 1,
+  });
+});
+
+app.put('/api/settings/:userId', (req, res) => {
+  const { defaultSetCount, showTimeOfDay, darkMode } = req.body;
+  const { userId } = req.params;
+  db.prepare(`
+    INSERT INTO user_settings (user_id, default_set_count, show_time_of_day, dark_mode)
+    VALUES (?, ?, ?, ?)
+    ON CONFLICT(user_id) DO UPDATE SET
+      default_set_count = excluded.default_set_count,
+      show_time_of_day  = excluded.show_time_of_day,
+      dark_mode         = excluded.dark_mode
+  `).run(userId, defaultSetCount ?? 3, showTimeOfDay ? 1 : 0, darkMode ? 1 : 0);
+  res.json({ ok: true });
+});
+
 // ── Templates ─────────────────────────────────────────────────────────────────
 
 app.get('/api/templates', (req, res) => {

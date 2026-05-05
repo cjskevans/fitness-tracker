@@ -22,6 +22,13 @@ if (!hasSessionsTable) {
 }
 
 db.exec(`
+  CREATE TABLE IF NOT EXISTS user_settings (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id),
+    default_set_count INTEGER NOT NULL DEFAULT 3,
+    show_time_of_day INTEGER NOT NULL DEFAULT 1,
+    dark_mode INTEGER NOT NULL DEFAULT 0
+  );
+
   CREATE TABLE IF NOT EXISTS templates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id),

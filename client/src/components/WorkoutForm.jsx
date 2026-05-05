@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { logSession, getTemplates, createTemplate, deleteTemplateById, getLastTemplateSession } from '../api';
+import toast from 'react-hot-toast';
 import exercises from '../exercises';
 
 const today = () => new Date().toISOString().split('T')[0];
 const muscleGroups = Object.keys(exercises);
 const emptySet = () => ({ reps: '', weight: '' });
-const emptyBlock = () => ({ id: Date.now() + Math.random(), muscleGroup: '', exercise: '', customName: '', sets: [emptySet()] });
+const emptyBlock = (setCount = 1) => ({ id: Date.now() + Math.random(), muscleGroup: '', exercise: '', customName: '', sets: Array.from({ length: setCount }, emptySet) });
 
 const formatDate = (dateStr) => {
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -21,11 +22,10 @@ const blockFromExerciseName = (name) => {
   return { id: Date.now() + Math.random(), muscleGroup: '', exercise: '__custom__', customName: name, sets: [emptySet()] };
 };
 
-export default function WorkoutForm({ userId, onLogged }) {
+export default function WorkoutForm({ userId, onLogged, defaultSetCount = 3, showTimeOfDay = true }) {
   const [date, setDate] = useState(today());
   const [timeOfDay, setTimeOfDay] = useState('');
-  const [blocks, setBlocks] = useState([emptyBlock()]);
-  const [status, setStatus] = useState(null);
+  const [blocks, setBlocks] = useState(() => [emptyBlock(defaultSetCount)]);
 
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
@@ -43,7 +43,7 @@ export default function WorkoutForm({ userId, onLogged }) {
     getLastTemplateSession(Number(selectedTemplate)).then(setLastSession);
   }, [selectedTemplate]);
 
-  const addBlock = () => setBlocks(prev => [...prev, emptyBlock()]);
+  const addBlock = () => setBlocks(prev => [...prev, emptyBlock(defaultSetCount)]);
   const removeBlock = (i) => setBlocks(prev => prev.filter((_, idx) => idx !== i));
 
   const updateBlock = (i, field, value) =>
@@ -108,22 +108,20 @@ export default function WorkoutForm({ userId, onLogged }) {
         })),
       });
 
-      let msg = 'Workout logged!';
       if (result.newPRs?.length > 0) {
-        const list = result.newPRs
-          .map(p => `${p.exercise} (${p.prSet.weight} lbs × ${p.prSet.reps})`)
-          .join(', ');
-        msg = `New PR${result.newPRs.length > 1 ? 's' : ''}! ${list}`;
+        result.newPRs.forEach(p =>
+          toast.success(`New PR — ${p.exercise}: ${p.prSet.weight} lbs × ${p.prSet.reps} reps`, { duration: 6000 })
+        );
+      } else {
+        toast.success('Workout logged!');
       }
 
-      setStatus({ ok: true, msg });
       setTimeOfDay('');
-      setBlocks([emptyBlock()]);
+      setBlocks([emptyBlock(defaultSetCount)]);
       onLogged();
     } catch {
-      setStatus({ ok: false, msg: 'Error — please try again.' });
+      toast.error('Failed to log workout. Please try again.');
     }
-    setTimeout(() => setStatus(null), 4000);
   };
 
   return (
@@ -181,16 +179,18 @@ export default function WorkoutForm({ userId, onLogged }) {
             <input type="date" value={date} max={today()}
               onChange={e => setDate(e.target.value)} required style={fieldStyle} />
           </div>
-          <div style={{ width: 100 }}>
-            <label style={labelStyle}>
-              Time <span style={{ fontWeight: 400, color: '#9ca3af' }}>(opt.)</span>
-            </label>
-            <select value={timeOfDay} onChange={e => setTimeOfDay(e.target.value)} style={fieldStyle}>
-              <option value="">—</option>
-              <option value="AM">AM</option>
-              <option value="PM">PM</option>
-            </select>
-          </div>
+          {showTimeOfDay && (
+            <div style={{ width: 100 }}>
+              <label style={labelStyle}>
+                Time <span style={{ fontWeight: 400, color: '#9ca3af' }}>(opt.)</span>
+              </label>
+              <select value={timeOfDay} onChange={e => setTimeOfDay(e.target.value)} style={fieldStyle}>
+                <option value="">—</option>
+                <option value="AM">AM</option>
+                <option value="PM">PM</option>
+              </select>
+            </div>
+          )}
         </div>
 
         {blocks.map((block, bi) => (
@@ -298,11 +298,6 @@ export default function WorkoutForm({ userId, onLogged }) {
           <button type="submit" style={submitBtnStyle}>Log Workout</button>
         </div>
 
-        {status && (
-          <p style={{ marginTop: '0.75rem', color: status.ok ? '#16a34a' : '#dc2626' }}>
-            {status.msg}
-          </p>
-        )}
       </form>
     </div>
   );

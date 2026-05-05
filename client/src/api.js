@@ -26,6 +26,12 @@ export const getExercises = (userId) =>
 export const getPRs = (userId) =>
   api.get('/prs', { params: { userId } }).then(r => r.data);
 
+export const getSettings = (userId) =>
+  api.get('/settings', { params: { userId } }).then(r => r.data);
+
+export const updateSettings = (userId, data) =>
+  api.put(`/settings/${userId}`, data).then(r => r.data);
+
 export const getTemplates = (userId) =>
   api.get('/templates', { params: { userId } }).then(r => r.data);
 
