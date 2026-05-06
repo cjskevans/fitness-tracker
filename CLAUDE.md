@@ -17,14 +17,13 @@ npm run dev --prefix server    # Express server on port 3001 (--watch mode)
 
 # Production build
 npm run build --prefix client
-```
-
 # Run all tests (server + client)
 npm test
 
 # Run individually
 npm run test --prefix server   # Jest + supertest against in-memory SQLite
 npm run test --prefix client   # Jest + React Testing Library
+```
 
 ## Architecture
 
@@ -32,14 +31,24 @@ Full-stack fitness tracker — React frontend + Express/SQLite backend — run a
 
 **Client** (`client/src/`): React 18 + Vite. `App.jsx` is the top-level state owner; it holds user identity, dark mode preference, and exercise selection, and passes refresh triggers down to child components. State that survives page reload lives in `localStorage` (`ft_user`, `ft_dark`). All API calls are in `api.js` (axios). Styling is inline CSS throughout, with CSS custom properties in `index.css` driving the light/dark theme. There is no CSS-in-JS, CSS modules, or Tailwind.
 
-**Server** (`server/`): Express 4 on port 3001. `db.js` initializes the SQLite schema on startup (tables: `users`, `sessions`, `workout_exercises`, `sets`). `index.js` defines all routes. Data is stored in `server/workouts.db` (gitignored).
+**Server** (`server/`): Express 4 on port 3001. `db.js` initializes the SQLite schema on startup. `index.js` defines all routes. Data is stored in `server/workouts.db` (gitignored). Pass `NODE_ENV=test` to use an in-memory SQLite database (used by Jest).
 
 **Dev proxy**: Vite proxies `/api/*` to `localhost:3001`, so the client only needs relative `/api` paths in development.
 
-**Data model**: A session has many workout_exercises (ordered), each of which has many sets (reps + weight). Sessions and their children are inserted in a single SQLite transaction. Cascade deletes are set on foreign keys.
+**Data model**: 
+- `users` — plain username, no auth
+- `sessions` → `workout_exercises` → `sets` — a session has ordered exercises, each with sets (reps + weight); cascade deletes on foreign keys; session insertion is a single SQLite transaction
+- `templates` → `template_exercises` — named lists of exercise names saved per user; loaded into the workout form to pre-fill exercises
+- `user_settings` — per-user preferences (default set count, show time of day, dark mode)
 
-**PR detection**: `POST /api/sessions` returns a `newPRs` array containing any exercises where the logged weight × reps combination beats the user's previous best.
+**PR detection**: `POST /api/sessions` returns a `newPRs` array for any exercise where the logged weight × reps beats the user's previous best. Toasts are shown via `react-hot-toast`.
 
-**Exercise taxonomy**: `client/src/exercises.js` exports a static map of muscle group → exercise list used to populate the workout form. Users can also type custom exercise names.
+**Settings**: Fetched from the DB on login (`GET /api/settings`), saved with `PUT /api/settings/:userId`. `App.jsx` holds the settings in state and passes `defaultSetCount` and `showTimeOfDay` as props to `WorkoutForm`. Dark mode is also cached in `localStorage` (`ft_dark`) to avoid a flash on reload.
 
-**Multi-user**: Users are identified by plain username (no auth). The active user is stored in localStorage and sent as `userId` on API requests.
+**Templates — last session lookup**: `GET /api/templates/:id/last-session` finds the most recent session containing all of the template's exercises (matched by exercise name set) and returns it with full sets detail. Shown in the WorkoutForm when a template is selected from the dropdown.
+
+**Responsive layout**: Breakpoint at 640px in `index.css`. Layout-critical styles (grid, padding, header, template rows) use CSS classes; all other styles remain inline.
+
+**Exercise taxonomy**: `client/src/exercises.js` exports a static map of muscle group → exercise list. Users can also enter custom exercise names.
+
+**Multi-user**: Users are identified by plain username (no auth). The active user is stored in `localStorage` (`ft_user`) and sent as `userId` on API requests.
