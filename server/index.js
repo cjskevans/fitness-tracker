@@ -2,11 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const errorHandler = require('./middleware/errorHandler');
+const sanitize = require('./middleware/sanitize');
 
 const app = express();
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+app.use(sanitize);
 
 app.use('/api/auth',      require('./routes/auth'));
 app.use('/api/sessions',  require('./routes/sessions'));
