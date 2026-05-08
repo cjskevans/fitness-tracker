@@ -17,6 +17,8 @@ app.use('/api/workouts',  require('./routes/workouts'));
 app.use('/api/prs',       require('./routes/prs'));
 app.use('/api/settings',  require('./routes/settings'));
 app.use('/api/templates', require('./routes/templates'));
+app.use('/api/export',   require('./routes/export'));
+app.use('/api/import',   require('./routes/import'));
 
 app.use(errorHandler);
 

@@ -52,3 +52,9 @@ export const deleteTemplateById = (id) =>
 
 export const getLastTemplateSession = (templateId) =>
   api.get(`/templates/${templateId}/last-session`).then(r => r.data);
+
+export const exportWorkouts = () =>
+  api.get('/export', { responseType: 'blob' }).then(r => r.data);
+
+export const importWorkouts = (csv) =>
+  api.post('/import', { csv }).then(r => r.data);

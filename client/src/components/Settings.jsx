@@ -1,14 +1,47 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
+import { exportWorkouts, importWorkouts } from '../api';
 
-export default function Settings({ settings, onSave, onBack }) {
+export default function Settings({ settings, onSave, onBack, onImported }) {
   const [defaultSetCount, setDefaultSetCount] = useState(String(settings.defaultSetCount));
   const [showTimeOfDay, setShowTimeOfDay] = useState(settings.showTimeOfDay);
   const [darkMode, setDarkMode] = useState(settings.darkMode);
+  const fileInputRef = React.useRef(null);
   const save = async () => {
     const count = Math.max(1, Math.min(10, parseInt(defaultSetCount, 10) || 3));
     await onSave({ defaultSetCount: count, showTimeOfDay, darkMode });
     toast.success('Settings saved!');
+  };
+
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const { imported } = await importWorkouts(ev.target.result);
+        toast.success(`Imported ${imported} session${imported !== 1 ? 's' : ''}!`);
+        onImported?.();
+      } catch {
+        toast.error('Import failed. Check the file format and try again.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleExport = async () => {
+    try {
+      const blob = await exportWorkouts();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'workouts.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Export failed. Please try again.');
+    }
   };
 
   return (
@@ -37,8 +70,11 @@ export default function Settings({ settings, onSave, onBack }) {
         </Row>
       </div>
 
-      <div style={{ marginTop: '1.25rem' }}>
+      <div style={{ marginTop: '1.25rem', display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
         <button onClick={save} style={saveBtn}>Save settings</button>
+        <button onClick={handleExport} style={exportBtn}>Export data (CSV)</button>
+        <button onClick={() => fileInputRef.current.click()} style={exportBtn}>Import data (CSV)</button>
+        <input ref={fileInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImport} />
       </div>
     </div>
   );
@@ -92,6 +128,11 @@ const backBtn = {
 const saveBtn = {
   padding: '0.6rem 1.4rem', fontSize: '1rem', cursor: 'pointer',
   background: '#2563eb', color: '#fff', border: 'none', borderRadius: 4,
+};
+const exportBtn = {
+  padding: '0.6rem 1.4rem', fontSize: '1rem', cursor: 'pointer',
+  background: 'var(--surface)', color: 'var(--text-secondary)',
+  border: '1px solid var(--border-input)', borderRadius: 4,
 };
 const numberInput = {
   width: 64, padding: '0.4rem 0.5rem', fontSize: '1rem', textAlign: 'center',

@@ -1,0 +1,109 @@
+Date,Time of Day,Exercise,Set,Reps,Weight (lbs)
+2024-01-01,AM,Bench Press,1,8,135
+2024-01-01,AM,Bench Press,2,8,135
+2024-01-01,AM,Bench Press,3,6,135
+2024-01-01,AM,Overhead Press,1,8,95
+2024-01-01,AM,Overhead Press,2,8,95
+2024-01-01,AM,Overhead Press,3,6,95
+2024-01-01,AM,Tricep Pushdown,1,12,50
+2024-01-01,AM,Tricep Pushdown,2,12,50
+2024-01-01,AM,Tricep Pushdown,3,10,50
+2024-01-03,AM,Squat,1,5,185
+2024-01-03,AM,Squat,2,5,185
+2024-01-03,AM,Squat,3,5,185
+2024-01-03,AM,Romanian Deadlift,1,8,135
+2024-01-03,AM,Romanian Deadlift,2,8,135
+2024-01-03,AM,Romanian Deadlift,3,8,135
+2024-01-03,AM,Leg Press,1,12,270
+2024-01-03,AM,Leg Press,2,12,270
+2024-01-03,AM,Leg Press,3,10,270
+2024-01-05,PM,Deadlift,1,5,225
+2024-01-05,PM,Deadlift,2,5,225
+2024-01-05,PM,Deadlift,3,3,225
+2024-01-05,PM,Barbell Row,1,8,135
+2024-01-05,PM,Barbell Row,2,8,135
+2024-01-05,PM,Barbell Row,3,8,135
+2024-01-05,PM,Bicep Curl,1,12,35
+2024-01-05,PM,Bicep Curl,2,12,35
+2024-01-05,PM,Bicep Curl,3,10,35
+2024-01-08,AM,Bench Press,1,8,140
+2024-01-08,AM,Bench Press,2,8,140
+2024-01-08,AM,Bench Press,3,6,140
+2024-01-08,AM,Overhead Press,1,8,100
+2024-01-08,AM,Overhead Press,2,8,100
+2024-01-08,AM,Overhead Press,3,6,100
+2024-01-08,AM,Tricep Pushdown,1,12,55
+2024-01-08,AM,Tricep Pushdown,2,12,55
+2024-01-08,AM,Tricep Pushdown,3,10,55
+2024-01-10,AM,Squat,1,5,190
+2024-01-10,AM,Squat,2,5,190
+2024-01-10,AM,Squat,3,5,190
+2024-01-10,AM,Romanian Deadlift,1,8,140
+2024-01-10,AM,Romanian Deadlift,2,8,140
+2024-01-10,AM,Romanian Deadlift,3,8,140
+2024-01-10,AM,Leg Press,1,12,280
+2024-01-10,AM,Leg Press,2,12,280
+2024-01-10,AM,Leg Press,3,10,280
+2024-01-12,PM,Deadlift,1,5,235
+2024-01-12,PM,Deadlift,2,5,235
+2024-01-12,PM,Deadlift,3,3,235
+2024-01-12,PM,Barbell Row,1,8,140
+2024-01-12,PM,Barbell Row,2,8,140
+2024-01-12,PM,Barbell Row,3,8,140
+2024-01-12,PM,Bicep Curl,1,12,37
+2024-01-12,PM,Bicep Curl,2,12,37
+2024-01-12,PM,Bicep Curl,3,10,37
+2024-01-15,AM,Bench Press,1,8,145
+2024-01-15,AM,Bench Press,2,8,145
+2024-01-15,AM,Bench Press,3,6,145
+2024-01-15,AM,Overhead Press,1,8,105
+2024-01-15,AM,Overhead Press,2,8,105
+2024-01-15,AM,Overhead Press,3,6,105
+2024-01-15,AM,Tricep Pushdown,1,12,55
+2024-01-15,AM,Tricep Pushdown,2,12,55
+2024-01-15,AM,Tricep Pushdown,3,12,55
+2024-01-17,AM,Squat,1,5,195
+2024-01-17,AM,Squat,2,5,195
+2024-01-17,AM,Squat,3,5,195
+2024-01-17,AM,Romanian Deadlift,1,8,145
+2024-01-17,AM,Romanian Deadlift,2,8,145
+2024-01-17,AM,Romanian Deadlift,3,8,145
+2024-01-17,AM,Leg Press,1,12,290
+2024-01-17,AM,Leg Press,2,12,290
+2024-01-17,AM,Leg Press,3,10,290
+2024-01-19,PM,Deadlift,1,5,240
+2024-01-19,PM,Deadlift,2,5,240
+2024-01-19,PM,Deadlift,3,3,240
+2024-01-19,PM,Barbell Row,1,8,145
+2024-01-19,PM,Barbell Row,2,8,145
+2024-01-19,PM,Barbell Row,3,8,145
+2024-01-19,PM,Bicep Curl,1,12,40
+2024-01-19,PM,Bicep Curl,2,12,40
+2024-01-19,PM,Bicep Curl,3,10,40
+2024-01-22,AM,Bench Press,1,8,150
+2024-01-22,AM,Bench Press,2,8,150
+2024-01-22,AM,Bench Press,3,6,150
+2024-01-22,AM,Overhead Press,1,8,110
+2024-01-22,AM,Overhead Press,2,8,110
+2024-01-22,AM,Overhead Press,3,6,110
+2024-01-22,AM,Tricep Pushdown,1,12,60
+2024-01-22,AM,Tricep Pushdown,2,12,60
+2024-01-22,AM,Tricep Pushdown,3,10,60
+2024-01-24,AM,Squat,1,5,200
+2024-01-24,AM,Squat,2,5,200
+2024-01-24,AM,Squat,3,5,200
+2024-01-24,AM,Romanian Deadlift,1,8,150
+2024-01-24,AM,Romanian Deadlift,2,8,150
+2024-01-24,AM,Romanian Deadlift,3,8,150
+2024-01-24,AM,Leg Press,1,12,300
+2024-01-24,AM,Leg Press,2,12,300
+2024-01-24,AM,Leg Press,3,10,300
+2024-01-26,PM,Deadlift,1,5,245
+2024-01-26,PM,Deadlift,2,5,245
+2024-01-26,PM,Deadlift,3,3,245
+2024-01-26,PM,Barbell Row,1,8,150
+2024-01-26,PM,Barbell Row,2,8,150
+2024-01-26,PM,Barbell Row,3,8,150
+2024-01-26,PM,Bicep Curl,1,12,40
+2024-01-26,PM,Bicep Curl,2,12,40
+2024-01-26,PM,Bicep Curl,3,12,40

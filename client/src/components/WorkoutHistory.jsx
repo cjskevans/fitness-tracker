@@ -16,14 +16,19 @@ const formatDate = (dateStr) => {
   return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
+const PAGE_SIZE = 3;
+
 export default function WorkoutHistory({ refreshKey, onChanged }) {
   const [sessions, setSessions] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState(null);
+  const [expanded, setExpanded] = useState(false);
 
   const load = () => getSessions().then(setSessions);
 
   useEffect(() => { load(); }, [refreshKey]);
+
+  const visible = expanded ? sessions : sessions.slice(0, PAGE_SIZE);
 
   const startEdit = (session) => {
     setEditingId(session.id);
@@ -87,7 +92,7 @@ export default function WorkoutHistory({ refreshKey, onChanged }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      {sessions.map(session => (
+      {visible.map(session => (
         <div key={session.id} style={entryCard}>
 
           {editingId === session.id ? (
@@ -234,6 +239,11 @@ export default function WorkoutHistory({ refreshKey, onChanged }) {
           )}
         </div>
       ))}
+      {sessions.length > PAGE_SIZE && (
+        <button onClick={() => setExpanded(e => !e)} style={seeMoreBtn}>
+          {expanded ? 'See less' : `See ${sessions.length - PAGE_SIZE} more`}
+        </button>
+      )}
     </div>
   );
 }
@@ -255,3 +265,8 @@ const editBtnStyle = { padding: '0.25rem 0.6rem', fontSize: '0.8rem', cursor: 'p
 const deleteBtnStyle = { padding: '0.25rem 0.6rem', fontSize: '0.8rem', cursor: 'pointer', background: 'var(--surface)', border: '1px solid #fca5a5', borderRadius: 4, color: '#dc2626' };
 const th = { padding: '0.15rem 0.6rem', fontWeight: 500, textAlign: 'left', color: 'var(--text-muted)' };
 const td = { padding: '0.15rem 0.6rem' };
+const seeMoreBtn = {
+  background: 'none', border: '1px solid var(--border)', borderRadius: 4,
+  padding: '0.4rem 1rem', fontSize: '0.875rem', cursor: 'pointer',
+  color: '#2563eb', width: '100%',
+};

@@ -90,6 +90,7 @@ export default function App() {
           settings={settings}
           onSave={handleSaveSettings}
           onBack={() => setShowSettings(false)}
+          onImported={refreshAll}
         />
       ) : (
         <>
