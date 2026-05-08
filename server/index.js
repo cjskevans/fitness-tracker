@@ -1,7 +1,10 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
+app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
@@ -12,6 +15,8 @@ app.use('/api/workouts',  require('./routes/workouts'));
 app.use('/api/prs',       require('./routes/prs'));
 app.use('/api/settings',  require('./routes/settings'));
 app.use('/api/templates', require('./routes/templates'));
+
+app.use(errorHandler);
 
 if (require.main === module) {
   app.listen(3001, () => console.log('Server running on http://localhost:3001'));

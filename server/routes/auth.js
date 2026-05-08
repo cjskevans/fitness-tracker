@@ -1,12 +1,20 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 const db = require('../db');
 const { JWT_SECRET } = require('../middleware/auth');
+const asyncHandler = require('../middleware/asyncHandler');
 
 const router = express.Router();
 
-router.post('/register', async (req, res) => {
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many attempts, please try again later.' },
+});
+
+router.post('/register', authLimiter, asyncHandler(async (req, res) => {
   const username = req.body.username?.trim();
   const { password } = req.body;
   if (!username || !password) {
@@ -23,9 +31,9 @@ router.post('/register', async (req, res) => {
 
   const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
   res.status(201).json({ token, userId });
-});
+}));
 
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, asyncHandler(async (req, res) => {
   const username = req.body.username?.trim();
   const { password } = req.body;
   if (!username || !password) {
@@ -39,6 +47,6 @@ router.post('/login', async (req, res) => {
 
   const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
   res.json({ token, userId: user.id, username: user.username });
-});
+}));
 
 module.exports = router;
