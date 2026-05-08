@@ -1,8 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Server" type="NodeJSConfigurationType" working-dir="/server">
-    <EXTENSION ID="com.intellij.javascript.debugger.execution.StartBrowserRunConfigurationExtension">
-      <browser with-js-debugger="true" />
-    </EXTENSION>
+  <configuration default="false" name="Server" type="NodeJSConfigurationType" path-to-js-file="$PROJECT_DIR$/server/index.js" working-dir="$PROJECT_DIR$/server" node-parameters="--watch">
     <method v="2" />
   </configuration>
 </component>
