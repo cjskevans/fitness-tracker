@@ -35,30 +35,31 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
-    getExercises(user.id).then(setExercises);
-    getSettings(user.id).then(setSettings);
+    getExercises().then(setExercises);
+    getSettings().then(setSettings);
   }, [user]);
 
   useEffect(() => {
     if (selectedExercise && user) {
-      getChartData(selectedExercise, user.id).then(setChartData);
+      getChartData(selectedExercise).then(setChartData);
     }
   }, [selectedExercise, user]);
 
   const refreshAll = () => {
-    getExercises(user.id).then(setExercises);
-    if (selectedExercise) getChartData(selectedExercise, user.id).then(setChartData);
+    getExercises().then(setExercises);
+    if (selectedExercise) getChartData(selectedExercise).then(setChartData);
     setPrRefreshKey(k => k + 1);
     setHistoryRefreshKey(k => k + 1);
   };
 
   const handleSaveSettings = async (newSettings) => {
-    await updateSettings(user.id, newSettings);
+    await updateSettings(newSettings);
     setSettings(newSettings);
   };
 
   const switchUser = () => {
     localStorage.removeItem('ft_user');
+    localStorage.removeItem('ft_token');
     setUser(null);
     setExercises([]);
     setSelectedExercise('');
@@ -76,7 +77,7 @@ export default function App() {
         <h1 style={{ margin: 0 }}>Fitness Tracker</h1>
         <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {user.username} &middot;{' '}
-          <button onClick={switchUser} style={linkBtn}>Switch user</button>
+          <button onClick={switchUser} style={linkBtn}>Log out</button>
           &middot;{' '}
           <button onClick={() => setShowSettings(s => !s)} style={linkBtn}>
             {showSettings ? 'Back' : 'Settings'}
@@ -95,7 +96,6 @@ export default function App() {
           <div className="main-grid">
             <div style={card}>
               <WorkoutForm
-                userId={user.id}
                 onLogged={refreshAll}
                 defaultSetCount={settings.defaultSetCount}
                 showTimeOfDay={settings.showTimeOfDay}
@@ -121,13 +121,13 @@ export default function App() {
           <div style={{ ...card, marginTop: '1.5rem' }}>
             <h2 style={{ marginTop: 0 }}>Personal Records</h2>
             <p style={desc}>Your best set for each exercise, ranked by weight then reps.</p>
-            <PersonalRecords userId={user.id} refreshKey={prRefreshKey} />
+            <PersonalRecords refreshKey={prRefreshKey} />
           </div>
 
           <div style={{ ...card, marginTop: '1.5rem' }}>
             <h2 style={{ marginTop: 0 }}>Workout History</h2>
             <p style={desc}>Browse, edit, or delete your past workout sessions.</p>
-            <WorkoutHistory userId={user.id} refreshKey={historyRefreshKey} onChanged={refreshAll} />
+            <WorkoutHistory refreshKey={historyRefreshKey} onChanged={refreshAll} />
           </div>
         </>
       )}

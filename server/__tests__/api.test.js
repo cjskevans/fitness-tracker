@@ -6,49 +6,82 @@ afterEach(() => {
   db.prepare('DELETE FROM sets').run();
   db.prepare('DELETE FROM workout_exercises').run();
   db.prepare('DELETE FROM sessions').run();
+  db.prepare('DELETE FROM template_exercises').run();
+  db.prepare('DELETE FROM templates').run();
+  db.prepare('DELETE FROM user_settings').run();
   db.prepare('DELETE FROM users').run();
 });
 
-// ── Users ────────────────────────────────────────────────────────────────────
+async function registerAndLogin(username = 'alice', password = 'password123') {
+  await request(app).post('/api/auth/register').send({ username, password });
+  const res = await request(app).post('/api/auth/login').send({ username, password });
+  return { token: res.body.token, userId: res.body.userId };
+}
 
-describe('POST /api/users', () => {
-  it('creates a new user', async () => {
-    const res = await request(app).post('/api/users').send({ username: 'alice' });
-    expect(res.status).toBe(200);
-    expect(res.body.username).toBe('alice');
-    expect(res.body.id).toBeDefined();
+function authed(req, token) {
+  return req.set('Authorization', `Bearer ${token}`);
+}
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+
+describe('POST /api/auth/register', () => {
+  it('creates a new user and returns a token', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ username: 'alice', password: 'password123' });
+    expect(res.status).toBe(201);
+    expect(res.body.token).toBeDefined();
+    expect(res.body.userId).toBeDefined();
   });
 
-  it('returns the same user on duplicate username', async () => {
-    const first = await request(app).post('/api/users').send({ username: 'alice' });
-    const second = await request(app).post('/api/users').send({ username: 'alice' });
-    expect(second.body.id).toBe(first.body.id);
+  it('returns 409 when username is already taken', async () => {
+    await request(app).post('/api/auth/register').send({ username: 'alice', password: 'pass' });
+    const res = await request(app).post('/api/auth/register').send({ username: 'alice', password: 'pass' });
+    expect(res.status).toBe(409);
   });
 
-  it('returns 400 when username is missing', async () => {
-    const res = await request(app).post('/api/users').send({});
+  it('returns 400 when fields are missing', async () => {
+    const res = await request(app).post('/api/auth/register').send({ username: 'alice' });
     expect(res.status).toBe(400);
+  });
+});
+
+describe('POST /api/auth/login', () => {
+  it('returns a token for valid credentials', async () => {
+    await request(app).post('/api/auth/register').send({ username: 'alice', password: 'password123' });
+    const res = await request(app).post('/api/auth/login').send({ username: 'alice', password: 'password123' });
+    expect(res.status).toBe(200);
+    expect(res.body.token).toBeDefined();
+  });
+
+  it('returns 401 for wrong password', async () => {
+    await request(app).post('/api/auth/register').send({ username: 'alice', password: 'password123' });
+    const res = await request(app).post('/api/auth/login').send({ username: 'alice', password: 'wrong' });
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 401 for unknown user', async () => {
+    const res = await request(app).post('/api/auth/login').send({ username: 'nobody', password: 'pass' });
+    expect(res.status).toBe(401);
   });
 });
 
 // ── Sessions ─────────────────────────────────────────────────────────────────
 
 describe('POST /api/sessions', () => {
-  let userId;
+  let token;
 
   beforeEach(async () => {
-    const res = await request(app).post('/api/users').send({ username: 'alice' });
-    userId = res.body.id;
+    ({ token } = await registerAndLogin());
   });
 
   const bench = (date, weight = 100, reps = 8) => ({
-    userId,
     date,
     exercises: [{ exercise: 'Bench Press', sets: [{ reps, weight }] }],
   });
 
   it('creates a session and flags a first-time PR', async () => {
-    const res = await request(app).post('/api/sessions').send(bench('2024-01-01'));
+    const res = await authed(request(app).post('/api/sessions'), token).send(bench('2024-01-01'));
     expect(res.status).toBe(201);
     expect(res.body.id).toBeDefined();
     expect(res.body.newPRs).toHaveLength(1);
@@ -56,48 +89,51 @@ describe('POST /api/sessions', () => {
   });
 
   it('detects a new PR when weight improves', async () => {
-    await request(app).post('/api/sessions').send(bench('2024-01-01', 100));
-    const res = await request(app).post('/api/sessions').send(bench('2024-01-08', 105));
+    await authed(request(app).post('/api/sessions'), token).send(bench('2024-01-01', 100));
+    const res = await authed(request(app).post('/api/sessions'), token).send(bench('2024-01-08', 105));
     expect(res.body.newPRs).toHaveLength(1);
   });
 
   it('does not flag a PR when weight is lower', async () => {
-    await request(app).post('/api/sessions').send(bench('2024-01-01', 100));
-    const res = await request(app).post('/api/sessions').send(bench('2024-01-08', 90));
+    await authed(request(app).post('/api/sessions'), token).send(bench('2024-01-01', 100));
+    const res = await authed(request(app).post('/api/sessions'), token).send(bench('2024-01-08', 90));
     expect(res.body.newPRs).toHaveLength(0);
   });
 
   it('flags a PR when same weight but more reps', async () => {
-    await request(app).post('/api/sessions').send(bench('2024-01-01', 100, 5));
-    const res = await request(app).post('/api/sessions').send(bench('2024-01-08', 100, 8));
+    await authed(request(app).post('/api/sessions'), token).send(bench('2024-01-01', 100, 5));
+    const res = await authed(request(app).post('/api/sessions'), token).send(bench('2024-01-08', 100, 8));
     expect(res.body.newPRs).toHaveLength(1);
   });
 
   it('rejects a future date', async () => {
-    const res = await request(app).post('/api/sessions').send(bench('2099-01-01'));
+    const res = await authed(request(app).post('/api/sessions'), token).send(bench('2099-01-01'));
     expect(res.status).toBe(400);
   });
 
   it('returns 400 when reps or weight is zero', async () => {
-    const res = await request(app).post('/api/sessions').send({
-      userId,
+    const res = await authed(request(app).post('/api/sessions'), token).send({
       date: '2024-01-01',
       exercises: [{ exercise: 'Squat', sets: [{ reps: 0, weight: 100 }] }],
     });
     expect(res.status).toBe(400);
   });
+
+  it('returns 401 without a token', async () => {
+    const res = await request(app).post('/api/sessions').send(bench('2024-01-01'));
+    expect(res.status).toBe(401);
+  });
 });
 
 describe('GET /api/sessions', () => {
-  it('returns sessions for a user', async () => {
-    const { body: user } = await request(app).post('/api/users').send({ username: 'bob' });
-    await request(app).post('/api/sessions').send({
-      userId: user.id,
+  it('returns sessions for the authenticated user', async () => {
+    const { token } = await registerAndLogin('bob');
+    await authed(request(app).post('/api/sessions'), token).send({
       date: '2024-03-01',
       exercises: [{ exercise: 'Squat', sets: [{ reps: 5, weight: 150 }] }],
     });
 
-    const res = await request(app).get(`/api/sessions?userId=${user.id}`);
+    const res = await authed(request(app).get('/api/sessions'), token);
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
     expect(res.body[0].exercises[0].exercise).toBe('Squat');
@@ -106,33 +142,45 @@ describe('GET /api/sessions', () => {
 
 describe('DELETE /api/sessions/:id', () => {
   it('deletes a session and its exercises', async () => {
-    const { body: user } = await request(app).post('/api/users').send({ username: 'carol' });
-    const { body: session } = await request(app).post('/api/sessions').send({
-      userId: user.id,
+    const { token } = await registerAndLogin('carol');
+    const { body: session } = await authed(request(app).post('/api/sessions'), token).send({
       date: '2024-03-01',
       exercises: [{ exercise: 'Deadlift', sets: [{ reps: 3, weight: 200 }] }],
     });
 
-    await request(app).delete(`/api/sessions/${session.id}`);
+    await authed(request(app).delete(`/api/sessions/${session.id}`), token);
 
-    const res = await request(app).get(`/api/sessions?userId=${user.id}`);
+    const res = await authed(request(app).get('/api/sessions'), token);
     expect(res.body).toHaveLength(0);
+  });
+
+  it('returns 403 when deleting another user\'s session', async () => {
+    const { token: tokenA } = await registerAndLogin('userA');
+    const { token: tokenB } = await registerAndLogin('userB');
+
+    const { body: session } = await authed(request(app).post('/api/sessions'), tokenA).send({
+      date: '2024-03-01',
+      exercises: [{ exercise: 'Deadlift', sets: [{ reps: 3, weight: 200 }] }],
+    });
+
+    const res = await authed(request(app).delete(`/api/sessions/${session.id}`), tokenB);
+    expect(res.status).toBe(403);
   });
 });
 
 describe('GET /api/prs', () => {
   it('returns the best set per exercise', async () => {
-    const { body: user } = await request(app).post('/api/users').send({ username: 'dave' });
-    await request(app).post('/api/sessions').send({
-      userId: user.id, date: '2024-01-01',
+    const { token } = await registerAndLogin('dave');
+    await authed(request(app).post('/api/sessions'), token).send({
+      date: '2024-01-01',
       exercises: [{ exercise: 'Bench Press', sets: [{ reps: 8, weight: 80 }] }],
     });
-    await request(app).post('/api/sessions').send({
-      userId: user.id, date: '2024-01-08',
+    await authed(request(app).post('/api/sessions'), token).send({
+      date: '2024-01-08',
       exercises: [{ exercise: 'Bench Press', sets: [{ reps: 5, weight: 100 }] }],
     });
 
-    const res = await request(app).get(`/api/prs?userId=${user.id}`);
+    const res = await authed(request(app).get('/api/prs'), token);
     expect(res.body).toHaveLength(1);
     expect(res.body[0].weight).toBe(100);
   });

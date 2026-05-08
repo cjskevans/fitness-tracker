@@ -21,6 +21,19 @@ if (!hasSessionsTable) {
   `);
 }
 
+// Add password_hash to users if this is an existing DB without it
+const hasPasswordHash = db
+  .prepare("SELECT * FROM pragma_table_info('users') WHERE name='password_hash'")
+  .get();
+if (!hasPasswordHash) {
+  const usersTableExists = db
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+    .get();
+  if (usersTableExists) {
+    db.exec("ALTER TABLE users ADD COLUMN password_hash TEXT");
+  }
+}
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS user_settings (
     user_id INTEGER PRIMARY KEY REFERENCES users(id),
@@ -44,7 +57,8 @@ db.exec(`
 
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL UNIQUE
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT
   );
 
   CREATE TABLE IF NOT EXISTS sessions (

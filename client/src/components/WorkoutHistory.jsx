@@ -16,14 +16,14 @@ const formatDate = (dateStr) => {
   return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-export default function WorkoutHistory({ userId, refreshKey, onChanged }) {
+export default function WorkoutHistory({ refreshKey, onChanged }) {
   const [sessions, setSessions] = useState([]);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState(null);
 
-  const load = () => getSessions(userId).then(setSessions);
+  const load = () => getSessions().then(setSessions);
 
-  useEffect(() => { load(); }, [userId, refreshKey]);
+  useEffect(() => { load(); }, [refreshKey]);
 
   const startEdit = (session) => {
     setEditingId(session.id);

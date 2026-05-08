@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { getPRs } from '../api';
 
-export default function PersonalRecords({ userId, refreshKey }) {
+export default function PersonalRecords({ refreshKey }) {
   const [prs, setPRs] = useState([]);
 
   useEffect(() => {
-    getPRs(userId).then(setPRs);
-  }, [userId, refreshKey]);
+    getPRs().then(setPRs);
+  }, [refreshKey]);
 
   if (!prs.length) {
     return <p style={{ color: 'var(--text-muted)' }}>You have not logged any workouts yet</p>;

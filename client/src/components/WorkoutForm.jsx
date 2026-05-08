@@ -22,7 +22,7 @@ const blockFromExerciseName = (name) => {
   return { id: Date.now() + Math.random(), muscleGroup: '', exercise: '__custom__', customName: name, sets: [emptySet()] };
 };
 
-export default function WorkoutForm({ userId, onLogged, defaultSetCount = 3, showTimeOfDay = true }) {
+export default function WorkoutForm({ onLogged, defaultSetCount = 3, showTimeOfDay = true }) {
   const [date, setDate] = useState(today());
   const [timeOfDay, setTimeOfDay] = useState('');
   const [blocks, setBlocks] = useState(() => [emptyBlock(defaultSetCount)]);
@@ -35,8 +35,8 @@ export default function WorkoutForm({ userId, onLogged, defaultSetCount = 3, sho
   const [lastSession, setLastSession] = useState(null);
 
   useEffect(() => {
-    getTemplates(userId).then(setTemplates);
-  }, [userId]);
+    getTemplates().then(setTemplates);
+  }, []);
 
   useEffect(() => {
     if (!selectedTemplate) { setLastSession(null); return; }
@@ -78,8 +78,8 @@ export default function WorkoutForm({ userId, onLogged, defaultSetCount = 3, sho
       .filter(Boolean);
     if (!exerciseList.length) return;
     try {
-      await createTemplate({ userId, name, exercises: exerciseList });
-      setTemplates(await getTemplates(userId));
+      await createTemplate({ name, exercises: exerciseList });
+      setTemplates(await getTemplates());
       setTemplateName('');
       setTemplateMsg({ ok: true, msg: `Template "${name}" saved!` });
     } catch {
@@ -91,7 +91,7 @@ export default function WorkoutForm({ userId, onLogged, defaultSetCount = 3, sho
   const deleteTemplate = async () => {
     if (!selectedTemplate) return;
     await deleteTemplateById(Number(selectedTemplate));
-    setTemplates(await getTemplates(userId));
+    setTemplates(await getTemplates());
     setSelectedTemplate('');
   };
 
@@ -99,7 +99,6 @@ export default function WorkoutForm({ userId, onLogged, defaultSetCount = 3, sho
     e.preventDefault();
     try {
       const result = await logSession({
-        userId,
         date,
         timeOfDay: timeOfDay || undefined,
         exercises: blocks.map(b => ({

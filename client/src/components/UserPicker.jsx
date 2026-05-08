@@ -1,20 +1,37 @@
 import React, { useState } from 'react';
-import { createOrGetUser } from '../api';
+import { register, login } from '../api';
 
 export default function UserPicker({ onUser }) {
+  const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const switchMode = (m) => { setMode(m); setError(''); };
 
   const submit = async (e) => {
     e.preventDefault();
-    const trimmed = username.trim();
-    if (!trimmed) return;
+    setError('');
+    setLoading(true);
     try {
-      const user = await createOrGetUser(trimmed);
+      const fn = mode === 'register' ? register : login;
+      const data = await fn(username.trim(), password);
+      localStorage.setItem('ft_token', data.token);
+      const user = { id: data.userId, username: username.trim() };
       localStorage.setItem('ft_user', JSON.stringify(user));
       onUser(user);
-    } catch {
-      setError('Something went wrong. Try again.');
+    } catch (err) {
+      const status = err.response?.status;
+      if (mode === 'register' && status === 409) {
+        setError('Username already taken.');
+      } else if (mode === 'login' && status === 401) {
+        setError('Invalid username or password.');
+      } else {
+        setError(err.response?.data?.error || 'Something went wrong. Try again.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -22,9 +39,10 @@ export default function UserPicker({ onUser }) {
     <div style={overlay}>
       <div style={card}>
         <h1 style={{ marginTop: 0, fontSize: '1.5rem' }}>Fitness Tracker</h1>
-        <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem' }}>
-          Enter a username to get started. If you've used one before, entering it again will load your data.
-        </p>
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+          <button onClick={() => switchMode('login')} style={tabBtn(mode === 'login')}>Login</button>
+          <button onClick={() => switchMode('register')} style={tabBtn(mode === 'register')}>Register</button>
+        </div>
         <form onSubmit={submit}>
           <input
             type="text"
@@ -35,13 +53,31 @@ export default function UserPicker({ onUser }) {
             required
             style={inputStyle}
           />
-          <button type="submit" style={btnStyle}>Let's go</button>
-          {error && <p style={{ color: '#dc2626', marginTop: '0.5rem' }}>{error}</p>}
+          <input
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="Password"
+            required
+            style={inputStyle}
+          />
+          <button type="submit" disabled={loading} style={btnStyle}>
+            {loading ? '...' : mode === 'register' ? 'Create account' : "Let's go"}
+          </button>
+          {error && <p style={{ color: '#dc2626', marginTop: '0.5rem', fontSize: '0.875rem', margin: '0.5rem 0 0' }}>{error}</p>}
         </form>
       </div>
     </div>
   );
 }
+
+const tabBtn = (active) => ({
+  flex: 1, padding: '0.4rem', fontSize: '0.875rem', cursor: 'pointer', borderRadius: 4,
+  background: active ? '#2563eb' : 'var(--surface)',
+  color: active ? '#fff' : 'var(--text-secondary)',
+  border: active ? 'none' : '1px solid var(--border-input)',
+  fontWeight: active ? 600 : 400,
+});
 
 const overlay = {
   position: 'fixed', inset: 0,
