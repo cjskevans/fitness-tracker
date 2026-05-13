@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const path = require('path');
 const errorHandler = require('./middleware/errorHandler');
 const sanitize = require('./middleware/sanitize');
 
@@ -22,8 +23,15 @@ app.use('/api/import',   require('./routes/import'));
 
 app.use(errorHandler);
 
+if (process.env.NODE_ENV === 'production') {
+  const clientDist = path.join(__dirname, '../client/dist');
+  app.use(express.static(clientDist));
+  app.get('*', (req, res) => res.sendFile(path.join(clientDist, 'index.html')));
+}
+
 if (require.main === module) {
-  app.listen(3001, () => console.log('Server running on http://localhost:3001'));
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 
 module.exports = app;
