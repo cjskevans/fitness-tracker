@@ -18,3 +18,17 @@ Here are the primary goals
 Front end: React with Vite  
 Back end: Node with Express
 Database: SQLite 3
+
+### API Documentation
+Interactive API docs are served by the backend:
+
+- Swagger UI — http://localhost:3001/api/docs
+  (also linked from the app's Settings page)
+- Raw OpenAPI 3.0 spec — http://localhost:3001/api/docs.json
+
+Every endpoint except register/login needs a JWT. Call `POST /api/auth/login`
+from the docs page, copy the `token` out of the response, then hit **Authorize**
+and paste it in — Swagger UI will attach it to every subsequent request.
+
+The spec is covered by a contract test (`npm run test --prefix server`) that
+fails if a route exists without documentation, so the two can't drift apart.

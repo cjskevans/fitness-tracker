@@ -35,8 +35,10 @@ Full-stack fitness tracker — React frontend + Express/SQLite backend — run a
 **Server** (`server/`): Express 4 on port 3001. `db.js` initializes the SQLite schema on startup. `index.js` is a thin router-mount file — all route logic lives in `server/routes/`. Data is stored in `server/workouts.db` (gitignored). Pass `NODE_ENV=test` to use an in-memory SQLite database (used by Jest).
 
 **Server structure**:
-- `server/index.js` — mounts all routers, applies global middleware (helmet, cors, sanitize, errorHandler)
+- `server/index.js` — mounts all routers, applies global middleware (helmet, cors, sanitize, errorHandler), serves API docs
+- `server/routes/index.js` — the mount table (path → router); the single source of truth for what the API exposes
 - `server/routes/` — one file per resource: `auth`, `sessions`, `exercises`, `workouts`, `prs`, `settings`, `templates`, `export`, `import`
+- `server/openapi.js` — OpenAPI 3.0 spec for the whole API
 - `server/middleware/auth.js` — `requireAuth` JWT middleware + `JWT_SECRET`
 - `server/middleware/errorHandler.js` — centralised error handler (4-arg Express middleware)
 - `server/middleware/asyncHandler.js` — wraps async route handlers so errors propagate to errorHandler
@@ -54,7 +56,11 @@ Full-stack fitness tracker — React frontend + Express/SQLite backend — run a
 
 **PR detection**: `POST /api/sessions` returns a `newPRs` array for any exercise where the logged weight × reps beats the user's previous best. Toasts are shown via `react-hot-toast`.
 
-**Settings**: Fetched from the DB on login (`GET /api/settings`), saved with `PUT /api/settings`. `App.jsx` holds the settings in state and passes `defaultSetCount` and `showTimeOfDay` as props to `WorkoutForm`. Dark mode is also cached in `localStorage` (`ft_dark`) to avoid a flash on reload. Settings page also has Export (CSV download) and Import (CSV upload) buttons.
+**Settings**: Fetched from the DB on login (`GET /api/settings`), saved with `PUT /api/settings`. `App.jsx` holds the settings in state and passes `defaultSetCount` and `showTimeOfDay` as props to `WorkoutForm`. Dark mode is also cached in `localStorage` (`ft_dark`) to avoid a flash on reload. Settings page also has Export (CSV download) and Import (CSV upload) buttons, and a link out to the API docs at `/api/docs`.
+
+**API docs**: The OpenAPI 3.0 spec lives in `server/openapi.js` and is served two ways — raw JSON at `GET /api/docs.json` (importable into Postman/Insomnia) and Swagger UI at `GET /api/docs`, where you can paste a JWT via the **Authorize** button and call endpoints live. Helmet's default CSP blocks Swagger UI's inline bootstrap script, so `/api/docs` gets a relaxed `script-src` applied to that route only.
+
+`server/__tests__/openapi.test.js` is a contract test: it walks the routers in `routes/index.js` and fails if any live endpoint is missing from the spec (or documented but not mounted), so the docs cannot drift from the code. Adding a route means adding it to `openapi.js` in the same commit.
 
 **Export / Import**: `GET /api/export` returns a CSV of all the user's workout data. `POST /api/import` accepts `{ csv: string }` in the request body, parses it, and inserts sessions. A sample dataset is at `data/sample-workouts.csv`.
 
