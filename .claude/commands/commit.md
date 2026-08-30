@@ -31,11 +31,14 @@ If `node_modules` is missing, say so rather than guessing at whether the code wo
 
 Read the actual diff, not just the file list. Specifically:
 
-- **Never stage** `.DS_Store`, `*.log`, `output.txt`, `server/workouts.db`, or
-  anything under `.idea/`. These are local noise. If they're untracked, leave
-  them untracked and mention it.
-- **Never stage** secrets — real JWT secrets, API keys, `.env` files, or a
-  password that isn't obviously a test fixture.
+- **Never stage** local noise: `.DS_Store`, `*.log`, `.env*`,
+  `server/workouts.db`, or one-off scratch files like `output.txt`. The husky
+  pre-commit hook blocks these too, but catching them here gives a clearer
+  message than a rejected commit. If they're untracked, leave them untracked
+  and mention it. Note that `.idea/` is *not* noise — the run configurations and
+  data sources there are tracked on purpose.
+- **Never stage** secrets — real JWT secrets, API keys, or a password that isn't
+  obviously a test fixture.
 - If `package.json` dependencies changed, confirm the matching
   `package-lock.json` changed too. A lock file out of sync with its manifest is
   a broken install for anyone who clones this. Flag it if they disagree.
