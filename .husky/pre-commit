@@ -1,0 +1,35 @@
+# Runs before every commit. Bypass with: git commit --no-verify
+
+if [ ! -d node_modules ] || [ ! -d server/node_modules ] || [ ! -d client/node_modules ]; then
+  echo "pre-commit: dependencies are not installed."
+  echo "            run 'npm run install:all', or commit with --no-verify to skip."
+  exit 1
+fi
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+
+# Block local noise and secrets that shouldn't reach the history.
+blocked=$(echo "$staged" | grep -E '(^|/)(\.DS_Store|\.env(\..+)?|workouts\.db)$|\.log$' || true)
+if [ -n "$blocked" ]; then
+  echo "pre-commit: refusing to commit these files:"
+  echo "$blocked" | sed 's/^/            /'
+  echo "            unstage them with 'git restore --staged <file>'."
+  exit 1
+fi
+
+# A package.json dependency change without its lock file is a broken fresh clone.
+for manifest in package.json server/package.json client/package.json; do
+  lock="${manifest%package.json}package-lock.json"
+  echo "$staged" | grep -qx "$manifest" || continue
+  echo "$staged" | grep -qx "$lock" && continue
+  # Filter the version field out first, so the pipeline ends in a positive
+  # match -- grep -qv on empty input is not portable (ugrep returns 0, GNU 1).
+  git diff --cached "$manifest" \
+    | grep -v '"version":' \
+    | grep -qE '^[+-] *"[^"]+": *"[\^~]?[0-9]' || continue
+  echo "pre-commit: $manifest changed dependencies but $lock is not staged."
+  echo "            run 'npm install' there and stage the lock file."
+  exit 1
+done
+
+npm test

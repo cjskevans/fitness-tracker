@@ -76,6 +76,19 @@ export default function Settings({ settings, onSave, onBack, onImported }) {
         <button onClick={() => fileInputRef.current.click()} style={exportBtn}>Import data (CSV)</button>
         <input ref={fileInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImport} />
       </div>
+
+      <div style={{ ...card, marginTop: '1.25rem' }}>
+        <Row label="API documentation" hint="Interactive Swagger UI for the REST API behind this app.">
+          <a
+            href="/api/docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={linkBtn}
+          >
+            Open docs &#8599;
+          </a>
+        </Row>
+      </div>
     </div>
   );
 }
@@ -133,6 +146,12 @@ const exportBtn = {
   padding: '0.6rem 1.4rem', fontSize: '1rem', cursor: 'pointer',
   background: 'var(--surface)', color: 'var(--text-secondary)',
   border: '1px solid var(--border-input)', borderRadius: 4,
+};
+const linkBtn = {
+  ...exportBtn,
+  display: 'inline-block',
+  textDecoration: 'none',
+  whiteSpace: 'nowrap',
 };
 const numberInput = {
   width: 64, padding: '0.4rem 0.5rem', fontSize: '1rem', textAlign: 'center',
