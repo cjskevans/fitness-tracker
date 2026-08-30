@@ -26,6 +26,19 @@ npm run test --prefix server   # Jest + supertest against in-memory SQLite
 npm run test --prefix client   # Jest + React Testing Library
 ```
 
+## Pre-commit
+
+`.husky/pre-commit` runs on every commit (installed by husky via the root `prepare`
+script, so `npm install` at the root wires it up). It refuses the commit if
+dependencies aren't installed, if `.DS_Store` / `.env*` / `*.log` / `workouts.db`
+are staged, or if a `package.json` dependency change is staged without its
+`package-lock.json` — then runs the full test suite. Bypass with
+`git commit --no-verify`.
+
+`/commit` (`.claude/commands/commit.md`) is the Claude Code slash command covering
+the same ground plus staging and message-writing. It is a prompt, not a gate — the
+husky hook is what actually enforces.
+
 ## Architecture
 
 Full-stack fitness tracker — React frontend + Express/SQLite backend — run as a monorepo from the root.

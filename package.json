@@ -6,9 +6,11 @@
     "install:all": "npm install && npm install --prefix server && npm install --prefix client",
     "test": "npm run test --prefix server && npm run test --prefix client",
     "build": "npm install --prefix server && npm install --prefix client && npm run build --prefix client",
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "husky": "^9.1.7"
   }
 }
