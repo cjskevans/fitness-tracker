@@ -1,8 +1,6 @@
 // OpenAPI 3.0 description of the fitness-tracker API.
 //
 // Served as JSON at GET /api/docs.json and rendered by Swagger UI at GET /api/docs.
-// __tests__/openapi.test.js asserts this stays in sync with the routers actually
-// mounted in routes/index.js, so an undocumented endpoint fails the build.
 
 const bearer = [{ bearerAuth: [] }];
 

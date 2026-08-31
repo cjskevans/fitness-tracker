@@ -5,7 +5,6 @@ import * as api from '../api';
 
 jest.mock('../api');
 
-// Mirrors what POST /api/auth/login and /register return.
 const authResponse = { token: 'jwt-token', userId: 1, username: 'alice' };
 
 // Shape of an axios rejection, which is what UserPicker branches on.

@@ -1,8 +1,5 @@
-// Single source of truth for what the API exposes.
-//
-// index.js mounts these, and __tests__/openapi.test.js walks them to check every
-// live route is described in openapi.js — so adding a router here without
-// documenting it fails the test suite.
+// Single source of truth for what the API exposes. Adding a router here without
+// a matching entry in openapi.js fails __tests__/openapi.test.js.
 
 module.exports = {
   '/api/auth':      require('./auth'),

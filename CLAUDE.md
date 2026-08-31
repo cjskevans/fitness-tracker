@@ -26,6 +26,16 @@ npm run test --prefix server   # Jest + supertest against in-memory SQLite
 npm run test --prefix client   # Jest + React Testing Library
 ```
 
+## Conventions
+
+- **Comments explain why, not what.** Skip any comment that restates the code, and
+  don't explain the same thing in two files — say it once, in the place someone
+  is most likely to be reading when they need it.
+- **Keep `server/openapi.js` accurate, not just complete.** The contract test only
+  proves each route is *present* in the spec; it cannot tell whether a summary,
+  schema, or status code still matches what the handler does. Change a handler,
+  re-read its spec entry in the same edit.
+
 ## Pre-commit
 
 `.husky/pre-commit` runs on every commit (installed by husky via the root `prepare`
