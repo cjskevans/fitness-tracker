@@ -58,6 +58,12 @@ router.delete('/:id', requireAuth, (req, res) => {
 });
 
 router.get('/:id/last-session', requireAuth, (req, res) => {
+  const { userId } = req.user;
+  const template = db.prepare('SELECT user_id FROM templates WHERE id = ?').get(req.params.id);
+  if (!template || template.user_id !== userId) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
   const templateExercises = db.prepare(
     'SELECT exercise FROM template_exercises WHERE template_id = ? ORDER BY order_num'
   ).all(req.params.id).map(r => r.exercise);
