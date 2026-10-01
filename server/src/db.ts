@@ -1,9 +1,11 @@
-const Database = require('better-sqlite3');
-const path = require('path');
+import Database from 'better-sqlite3';
+import path from 'path';
 
+// '..' because this file runs from src/ under tsx and from dist/ once built;
+// either way the database lives at server/workouts.db.
 const dbPath = process.env.NODE_ENV === 'test'
   ? ':memory:'
-  : path.join(__dirname, 'workouts.db');
+  : path.join(__dirname, '..', 'workouts.db');
 const db = new Database(dbPath);
 
 db.pragma('foreign_keys = ON');
@@ -84,4 +86,4 @@ db.exec(`
   );
 `);
 
-module.exports = db;
+export default db;

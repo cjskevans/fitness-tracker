@@ -1,12 +1,12 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const path = require('path');
-const swaggerUi = require('swagger-ui-express');
-const errorHandler = require('./middleware/errorHandler');
-const sanitize = require('./middleware/sanitize');
-const openapiSpec = require('./openapi');
-const routes = require('./routes');
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import path from 'path';
+import swaggerUi from 'swagger-ui-express';
+import errorHandler from './middleware/errorHandler';
+import sanitize from './middleware/sanitize';
+import openapiSpec from './openapi';
+import routes from './routes';
 
 const app = express();
 app.use(helmet());
@@ -36,7 +36,7 @@ for (const [mountPath, router] of Object.entries(routes)) {
 app.use(errorHandler);
 
 if (process.env.NODE_ENV === 'production') {
-  const clientDist = path.join(__dirname, '../client/dist');
+  const clientDist = path.join(__dirname, '../../client/dist');
   app.use(express.static(clientDist));
   app.get('*', (req, res) => res.sendFile(path.join(clientDist, 'index.html')));
 }
@@ -49,4 +49,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = app;
+export default app;

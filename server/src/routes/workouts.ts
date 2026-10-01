@@ -1,14 +1,20 @@
-const express = require('express');
-const db = require('../db');
-const { requireAuth } = require('../middleware/auth');
+import express from 'express';
+import db from '../db';
+import { requireAuth } from '../middleware/auth';
 
 const router = express.Router();
+
+interface ChartPoint {
+  id: number;
+  date: string;
+  weight: number;
+}
 
 router.get('/', requireAuth, (req, res) => {
   const { userId } = req.user;
   const { exercise } = req.query;
   if (!exercise) return res.status(400).json({ error: 'exercise is required' });
-  const rows = db.prepare(`
+  const rows = db.prepare<[number, unknown], ChartPoint>(`
     SELECT s.id, s.date, MAX(st.weight) AS weight
     FROM sessions s
     JOIN workout_exercises we ON we.session_id = s.id
@@ -20,4 +26,4 @@ router.get('/', requireAuth, (req, res) => {
   res.json(rows);
 });
 
-module.exports = router;
+export default router;

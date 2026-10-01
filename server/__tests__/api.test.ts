@@ -1,6 +1,6 @@
-const request = require('supertest');
-const app = require('../index');
-const db = require('../db');
+import request from 'supertest';
+import app from '../src/index';
+import db from '../src/db';
 
 afterEach(() => {
   db.prepare('DELETE FROM sets').run();
@@ -18,7 +18,7 @@ async function registerAndLogin(username = 'alice', password = 'password123') {
   return { token: res.body.token, userId: res.body.userId };
 }
 
-function authed(req, token) {
+function authed(req: request.Test, token: string) {
   return req.set('Authorization', `Bearer ${token}`);
 }
 
@@ -79,13 +79,13 @@ describe('POST /api/auth/login', () => {
 // ── Sessions ─────────────────────────────────────────────────────────────────
 
 describe('POST /api/sessions', () => {
-  let token;
+  let token: string;
 
   beforeEach(async () => {
     ({ token } = await registerAndLogin());
   });
 
-  const bench = (date, weight = 100, reps = 8) => ({
+  const bench = (date: string, weight = 100, reps = 8) => ({
     date,
     exercises: [{ exercise: 'Bench Press', sets: [{ reps, weight }] }],
   });
@@ -197,7 +197,7 @@ describe('GET /api/prs', () => {
 });
 
 describe('GET /api/templates/:id/last-session', () => {
-  async function seed(token) {
+  async function seed(token: string) {
     await authed(request(app).post('/api/sessions'), token).send({
       date: '2024-01-01',
       exercises: [{ exercise: 'Squat', sets: [{ reps: 5, weight: 150 }] }],
