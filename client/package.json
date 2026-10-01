@@ -1,6 +1,9 @@
 {
   "name": "fitness-tracker-client",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=26"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

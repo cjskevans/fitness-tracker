@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+Requires Node 26 (pinned in `.nvmrc` and each `package.json`'s `engines`). `better-sqlite3` and `bcrypt` are native modules, so after switching Node versions delete the three `node_modules` folders and rerun `npm run install:all`.
+
 ```bash
 # Install all dependencies (root + server + client)
 npm run install:all
