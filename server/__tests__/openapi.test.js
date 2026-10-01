@@ -57,7 +57,7 @@ describe('OpenAPI spec', () => {
     }
   });
 
-  it('requires bearer auth by default and exempts only the auth routes', () => {
+  it('requires bearer auth by default and exempts only the auth and health routes', () => {
     expect(spec.security).toEqual([{ bearerAuth: [] }]);
 
     const publicOps = [];
@@ -67,6 +67,7 @@ describe('OpenAPI spec', () => {
       }
     }
     expect(publicOps.sort()).toEqual([
+      'GET /api/health',
       'POST /api/auth/login',
       'POST /api/auth/register',
     ]);

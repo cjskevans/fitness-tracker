@@ -1,12 +1,41 @@
 import axios from 'axios';
+import { reportReachable, reportUnreachable } from './connection';
 
-const api = axios.create({ baseURL: '/api' });
+// Without a timeout a backend that accepts the connection but never answers hangs
+// forever, and the outage never surfaces.
+const api = axios.create({ baseURL: '/api', timeout: 8000 });
 
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('ft_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
+
+function isUnreachable(error) {
+  const res = error.response;
+  if (!res) return true; // connection refused, DNS, or timeout (ECONNABORTED)
+  // In dev a dead backend still looks like an HTTP response: Vite's proxy answers
+  // 500 text/plain with an empty body when it cannot reach the server. Everything
+  // that actually reaches Express comes back from errorHandler.js as JSON, so the
+  // content type is what separates "server said no" from "there was no server".
+  // Testing the type rather than the body keeps exportWorkouts' blob responses
+  // from being misread as an outage.
+  const contentType = res.headers?.['content-type'] || '';
+  return res.status === 500 && !String(contentType).includes('application/json');
+}
+
+api.interceptors.response.use(
+  response => {
+    reportReachable();
+    return response;
+  },
+  error => {
+    if (isUnreachable(error)) reportUnreachable();
+    else reportReachable();
+    // Rejected unchanged: UserPicker branches on err.response?.status.
+    return Promise.reject(error);
+  }
+);
 
 export const register = (username, password) =>
   api.post('/auth/register', { username, password }).then(r => r.data);

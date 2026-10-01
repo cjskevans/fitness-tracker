@@ -2,6 +2,7 @@
 // a matching entry in openapi.js fails __tests__/openapi.test.js.
 
 module.exports = {
+  '/api/health':    require('./health'),
   '/api/auth':      require('./auth'),
   '/api/sessions':  require('./sessions'),
   '/api/exercises': require('./exercises'),
