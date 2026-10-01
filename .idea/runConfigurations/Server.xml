@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Server" type="NodeJSConfigurationType" path-to-js-file="$PROJECT_DIR$/server/index.js" working-dir="$PROJECT_DIR$/server" node-parameters="--watch">
+  <configuration default="false" name="Server" type="NodeJSConfigurationType" path-to-js-file="$PROJECT_DIR$/server/src/index.ts" working-dir="$PROJECT_DIR$/server" node-parameters="--watch --import tsx">
     <method v="2" />
   </configuration>
 </component>

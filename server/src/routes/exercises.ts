@@ -1,12 +1,12 @@
-const express = require('express');
-const db = require('../db');
-const { requireAuth } = require('../middleware/auth');
+import express from 'express';
+import db from '../db';
+import { requireAuth } from '../middleware/auth';
 
 const router = express.Router();
 
 router.get('/', requireAuth, (req, res) => {
   const { userId } = req.user;
-  const rows = db.prepare(`
+  const rows = db.prepare<[number], { exercise: string }>(`
     SELECT DISTINCT we.exercise
     FROM sessions s
     JOIN workout_exercises we ON we.session_id = s.id
@@ -16,4 +16,4 @@ router.get('/', requireAuth, (req, res) => {
   res.json(rows.map(r => r.exercise));
 });
 
-module.exports = router;
+export default router;

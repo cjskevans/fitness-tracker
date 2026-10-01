@@ -1,13 +1,22 @@
-const express = require('express');
-const db = require('../db');
-const { requireAuth } = require('../middleware/auth');
+import express from 'express';
+import db from '../db';
+import { requireAuth } from '../middleware/auth';
 
 const router = express.Router();
+
+interface ExportRow {
+  date: string;
+  time_of_day: string | null;
+  exercise: string;
+  set_number: number;
+  reps: number;
+  weight: number;
+}
 
 router.get('/', requireAuth, (req, res) => {
   const { userId } = req.user;
 
-  const rows = db.prepare(`
+  const rows = db.prepare<[number], ExportRow>(`
     SELECT
       s.date,
       s.time_of_day,
@@ -32,4 +41,4 @@ router.get('/', requireAuth, (req, res) => {
   res.send(lines.join('\n'));
 });
 
-module.exports = router;
+export default router;

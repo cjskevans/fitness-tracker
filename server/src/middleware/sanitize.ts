@@ -1,4 +1,6 @@
-function stripHtml(value) {
+import type { NextFunction, Request, Response } from 'express';
+
+function stripHtml(value: unknown): unknown {
   if (typeof value === 'string') return value.replace(/<[^>]*>/g, '').trim();
   if (Array.isArray(value)) return value.map(stripHtml);
   if (value && typeof value === 'object') {
@@ -7,9 +9,7 @@ function stripHtml(value) {
   return value;
 }
 
-function sanitize(req, res, next) {
+export default function sanitize(req: Request, res: Response, next: NextFunction) {
   if (req.body) req.body = stripHtml(req.body);
   next();
 }
-
-module.exports = sanitize;

@@ -13,16 +13,18 @@ npm run dev
 
 # Run individually
 npm run dev --prefix client    # Vite dev server on port 5173
-npm run dev --prefix server    # Express server on port 3001 (--watch mode)
+npm run dev --prefix server    # Express server on port 3001 (tsx watch)
 
 # Production build
+npm run build --prefix server    # tsc -> server/dist/
 npm run build --prefix client
 
 # Run all tests (server + client)
 npm test
 
 # Run individually
-npm run test --prefix server   # Jest + supertest against in-memory SQLite
+npm run test --prefix server   # tsc typecheck, then Jest (ts-jest) + supertest against in-memory SQLite
+npm run typecheck --prefix server  # typecheck only
 npm run test --prefix client   # Jest + React Testing Library
 ```
 
@@ -31,7 +33,7 @@ npm run test --prefix client   # Jest + React Testing Library
 - **Comments explain why, not what.** Skip any comment that restates the code, and
   don't explain the same thing in two files — say it once, in the place someone
   is most likely to be reading when they need it.
-- **Keep `server/openapi.js` accurate, not just complete.** The contract test only
+- **Keep `server/src/openapi.ts` accurate, not just complete.** The contract test only
   proves each route is *present* in the spec; it cannot tell whether a summary,
   schema, or status code still matches what the handler does. Change a handler,
   re-read its spec entry in the same edit.
@@ -55,17 +57,19 @@ Full-stack fitness tracker — React frontend + Express/SQLite backend — run a
 
 **Client** (`client/src/`): React 18 + Vite. `App.jsx` is the top-level state owner; it holds user identity, dark mode preference, and exercise selection, and passes refresh triggers down to child components. State that survives page reload lives in `localStorage` (`ft_user`, `ft_dark`, `ft_token`). All API calls are in `api.js` (axios). An axios request interceptor attaches the JWT token to every request automatically. Styling is inline CSS throughout, with CSS custom properties in `index.css` driving the light/dark theme. There is no CSS-in-JS, CSS modules, or Tailwind.
 
-**Server** (`server/`): Express 4 on port 3001. `db.js` initializes the SQLite schema on startup. `index.js` is a thin router-mount file — all route logic lives in `server/routes/`. Data is stored in `server/workouts.db` (gitignored). Pass `NODE_ENV=test` to use an in-memory SQLite database (used by Jest).
+**Server** (`server/`): Express 4 on port 3001, written in strict TypeScript. Source is in `server/src/`; `tsc -p tsconfig.build.json` compiles it to `server/dist/` (gitignored), which is what `npm start` runs. Dev runs the source directly through `tsx`, so there is no build step while developing. `tsconfig.json` typechecks `src/` and `__tests__/` without emitting, and the server's `npm test` runs it first, so the husky hook rejects type errors as well as test failures. `db.ts` initializes the SQLite schema on startup. `index.ts` is a thin router-mount file — all route logic lives in `server/src/routes/`. Data is stored in `server/workouts.db` (gitignored). Pass `NODE_ENV=test` to use an in-memory SQLite database (used by Jest).
+
+TypeScript pinned to 6.x because ts-jest does not yet support 7. Query result shapes are declared at each call site with `db.prepare<Params, Row>()` — better-sqlite3 cannot infer them from SQL, so a row interface that disagrees with its query compiles fine; keep the two side by side.
 
 **Server structure**:
-- `server/index.js` — mounts all routers, applies global middleware (helmet, cors, sanitize, errorHandler), serves API docs
-- `server/routes/index.js` — the mount table (path → router); the single source of truth for what the API exposes
-- `server/routes/` — one file per resource: `health`, `auth`, `sessions`, `exercises`, `workouts`, `prs`, `settings`, `templates`, `export`, `import`
-- `server/openapi.js` — OpenAPI 3.0 spec for the whole API
-- `server/middleware/auth.js` — `requireAuth` JWT middleware + `JWT_SECRET`
-- `server/middleware/errorHandler.js` — centralised error handler (4-arg Express middleware)
-- `server/middleware/asyncHandler.js` — wraps async route handlers so errors propagate to errorHandler
-- `server/middleware/sanitize.js` — strips HTML tags from all request body strings
+- `server/src/index.ts` — mounts all routers, applies global middleware (helmet, cors, sanitize, errorHandler), serves API docs
+- `server/src/routes/index.ts` — the mount table (path → router); the single source of truth for what the API exposes
+- `server/src/routes/` — one file per resource: `health`, `auth`, `sessions`, `exercises`, `workouts`, `prs`, `settings`, `templates`, `export`, `import`
+- `server/src/openapi.ts` — OpenAPI 3.0 spec for the whole API, typed against `openapi-types`
+- `server/src/middleware/auth.ts` — `requireAuth` JWT middleware + `JWT_SECRET`
+- `server/src/middleware/errorHandler.ts` — centralised error handler (4-arg Express middleware)
+- `server/src/middleware/asyncHandler.ts` — wraps async route handlers so errors propagate to errorHandler
+- `server/src/middleware/sanitize.ts` — strips HTML tags from all request body strings
 
 **Dev proxy**: Vite proxies `/api/*` to `localhost:3001`, so the client only needs relative `/api` paths in development.
 
@@ -81,16 +85,16 @@ Full-stack fitness tracker — React frontend + Express/SQLite backend — run a
 
 **Connectivity notifications**: A dead backend used to be invisible — most `.then()` call sites have no `.catch()`, so failed loads just rendered empty. `client/src/connection.js` is a small module-level store (`getStatus` / `subscribe` / `reportReachable` / `reportUnreachable`) that a response interceptor in `api.js` drives; `ConnectionStatus.jsx` turns its transitions into a single sticky toast via `useSyncExternalStore`. Two things are easy to get wrong here:
 
-- Detection cannot rely on `!error.response` alone. In dev, Vite's proxy answers `500 text/plain` when it can't reach the backend, so a dead server still looks like an HTTP response. `isUnreachable()` in `api.js` also treats a non-JSON 500 as unreachable, since everything that truly reaches Express returns JSON via `errorHandler.js`.
+- Detection cannot rely on `!error.response` alone. In dev, Vite's proxy answers `500 text/plain` when it can't reach the backend, so a dead server still looks like an HTTP response. `isUnreachable()` in `api.js` also treats a non-JSON 500 as unreachable, since everything that truly reaches Express returns JSON via `errorHandler.ts`.
 - All toasts share one id (`'connection'`), which is what stops a page-load's worth of failed requests from stacking one toast each.
 
-While unreachable, the store polls `GET /api/health` (unauthenticated, `server/routes/health.js`) every 5s with bare `fetch` — not the axios instance, which would recurse through the interceptor that scheduled the poll. `<Toaster />` lives in `main.jsx`, not `App.jsx`, because `App` early-returns the login screen when there is no user and that is exactly where an outage is first hit.
+While unreachable, the store polls `GET /api/health` (unauthenticated, `server/src/routes/health.ts`) every 5s with bare `fetch` — not the axios instance, which would recurse through the interceptor that scheduled the poll. `<Toaster />` lives in `main.jsx`, not `App.jsx`, because `App` early-returns the login screen when there is no user and that is exactly where an outage is first hit.
 
 **Settings**: Fetched from the DB on login (`GET /api/settings`), saved with `PUT /api/settings`. `App.jsx` holds the settings in state and passes `defaultSetCount` and `showTimeOfDay` as props to `WorkoutForm`. Dark mode is also cached in `localStorage` (`ft_dark`) to avoid a flash on reload. Settings page also has Export (CSV download) and Import (CSV upload) buttons, and a link out to the API docs at `/api/docs`.
 
-**API docs**: The OpenAPI 3.0 spec lives in `server/openapi.js` and is served two ways — raw JSON at `GET /api/docs.json` (importable into Postman/Insomnia) and Swagger UI at `GET /api/docs`, where you can paste a JWT via the **Authorize** button and call endpoints live. Helmet's default CSP blocks Swagger UI's inline bootstrap script, so `/api/docs` gets a relaxed `script-src` applied to that route only.
+**API docs**: The OpenAPI 3.0 spec lives in `server/src/openapi.ts` and is served two ways — raw JSON at `GET /api/docs.json` (importable into Postman/Insomnia) and Swagger UI at `GET /api/docs`, where you can paste a JWT via the **Authorize** button and call endpoints live. Helmet's default CSP blocks Swagger UI's inline bootstrap script, so `/api/docs` gets a relaxed `script-src` applied to that route only.
 
-`server/__tests__/openapi.test.js` is a contract test: it walks the routers in `routes/index.js` and fails if any live endpoint is missing from the spec (or documented but not mounted), so the docs cannot drift from the code. Adding a route means adding it to `openapi.js` in the same commit.
+`server/__tests__/openapi.test.ts` is a contract test: it walks the routers in `routes/index.ts` and fails if any live endpoint is missing from the spec (or documented but not mounted), so the docs cannot drift from the code. Adding a route means adding it to `openapi.ts` in the same commit.
 
 **Export / Import**: `GET /api/export` returns a CSV of all the user's workout data. `POST /api/import` accepts `{ csv: string }` in the request body, parses it, and inserts sessions. A sample dataset is at `data/sample-workouts.csv`.
 
