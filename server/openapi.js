@@ -516,6 +516,7 @@ const paths = {
       responses: {
         200: json('The matching session, or null if none.', ref('LastSession')),
         401: use('Unauthorized'),
+        403: use('Forbidden'),
       },
     },
   },

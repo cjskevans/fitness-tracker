@@ -195,3 +195,33 @@ describe('GET /api/prs', () => {
     expect(res.body[0].weight).toBe(100);
   });
 });
+
+describe('GET /api/templates/:id/last-session', () => {
+  async function seed(token) {
+    await authed(request(app).post('/api/sessions'), token).send({
+      date: '2024-01-01',
+      exercises: [{ exercise: 'Squat', sets: [{ reps: 5, weight: 150 }] }],
+    });
+    const { body } = await authed(request(app).post('/api/templates'), token)
+      .send({ name: 'Legs', exercises: ['Squat'] });
+    return body.id;
+  }
+
+  it('returns the owner\'s most recent matching session', async () => {
+    const { token } = await registerAndLogin('erin');
+    const templateId = await seed(token);
+
+    const res = await authed(request(app).get(`/api/templates/${templateId}/last-session`), token);
+    expect(res.status).toBe(200);
+    expect(res.body.exercises).toEqual([{ exercise: 'Squat', sets: [{ reps: 5, weight: 150 }] }]);
+  });
+
+  it('returns 403 for another user\'s template instead of their workout data', async () => {
+    const { token: ownerToken } = await registerAndLogin('frank');
+    const { token: otherToken } = await registerAndLogin('grace');
+    const templateId = await seed(ownerToken);
+
+    const res = await authed(request(app).get(`/api/templates/${templateId}/last-session`), otherToken);
+    expect(res.status).toBe(403);
+  });
+});
