@@ -22,6 +22,16 @@ function authed(req, token) {
   return req.set('Authorization', `Bearer ${token}`);
 }
 
+// ── Health ───────────────────────────────────────────────────────────────────
+
+describe('GET /api/health', () => {
+  it('reports the server is up without a token', async () => {
+    const res = await request(app).get('/api/health');
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+  });
+});
+
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
 describe('POST /api/auth/register', () => {

@@ -60,7 +60,7 @@ Full-stack fitness tracker — React frontend + Express/SQLite backend — run a
 **Server structure**:
 - `server/index.js` — mounts all routers, applies global middleware (helmet, cors, sanitize, errorHandler), serves API docs
 - `server/routes/index.js` — the mount table (path → router); the single source of truth for what the API exposes
-- `server/routes/` — one file per resource: `auth`, `sessions`, `exercises`, `workouts`, `prs`, `settings`, `templates`, `export`, `import`
+- `server/routes/` — one file per resource: `health`, `auth`, `sessions`, `exercises`, `workouts`, `prs`, `settings`, `templates`, `export`, `import`
 - `server/openapi.js` — OpenAPI 3.0 spec for the whole API
 - `server/middleware/auth.js` — `requireAuth` JWT middleware + `JWT_SECRET`
 - `server/middleware/errorHandler.js` — centralised error handler (4-arg Express middleware)
@@ -78,6 +78,13 @@ Full-stack fitness tracker — React frontend + Express/SQLite backend — run a
 - `user_settings` — per-user preferences (default set count, show time of day, dark mode)
 
 **PR detection**: `POST /api/sessions` returns a `newPRs` array for any exercise where the logged weight × reps beats the user's previous best. Toasts are shown via `react-hot-toast`.
+
+**Connectivity notifications**: A dead backend used to be invisible — most `.then()` call sites have no `.catch()`, so failed loads just rendered empty. `client/src/connection.js` is a small module-level store (`getStatus` / `subscribe` / `reportReachable` / `reportUnreachable`) that a response interceptor in `api.js` drives; `ConnectionStatus.jsx` turns its transitions into a single sticky toast via `useSyncExternalStore`. Two things are easy to get wrong here:
+
+- Detection cannot rely on `!error.response` alone. In dev, Vite's proxy answers `500 text/plain` when it can't reach the backend, so a dead server still looks like an HTTP response. `isUnreachable()` in `api.js` also treats a non-JSON 500 as unreachable, since everything that truly reaches Express returns JSON via `errorHandler.js`.
+- All toasts share one id (`'connection'`), which is what stops a page-load's worth of failed requests from stacking one toast each.
+
+While unreachable, the store polls `GET /api/health` (unauthenticated, `server/routes/health.js`) every 5s with bare `fetch` — not the axios instance, which would recurse through the interceptor that scheduled the poll. `<Toaster />` lives in `main.jsx`, not `App.jsx`, because `App` early-returns the login screen when there is no user and that is exactly where an outage is first hit.
 
 **Settings**: Fetched from the DB on login (`GET /api/settings`), saved with `PUT /api/settings`. `App.jsx` holds the settings in state and passes `defaultSetCount` and `showTimeOfDay` as props to `WorkoutForm`. Dark mode is also cached in `localStorage` (`ft_dark`) to avoid a flash on reload. Settings page also has Export (CSV download) and Import (CSV upload) buttons, and a link out to the API docs at `/api/docs`.
 

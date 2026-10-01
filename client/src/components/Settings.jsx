@@ -9,8 +9,12 @@ export default function Settings({ settings, onSave, onBack, onImported }) {
   const fileInputRef = React.useRef(null);
   const save = async () => {
     const count = Math.max(1, Math.min(10, parseInt(defaultSetCount, 10) || 3));
-    await onSave({ defaultSetCount: count, showTimeOfDay, darkMode });
-    toast.success('Settings saved!');
+    try {
+      await onSave({ defaultSetCount: count, showTimeOfDay, darkMode });
+      toast.success('Settings saved!');
+    } catch {
+      toast.error('Failed to save settings. Please try again.');
+    }
   };
 
   const handleImport = (e) => {

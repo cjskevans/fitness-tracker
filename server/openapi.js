@@ -288,6 +288,18 @@ const idParam = {
 // ── Paths ────────────────────────────────────────────────────────────────────
 
 const paths = {
+  '/api/health': {
+    get: {
+      tags: ['System'],
+      summary: 'Check that the server is reachable',
+      description: 'Unauthenticated so the client can poll it while offline.',
+      security: [],
+      responses: {
+        200: json('Server is up.', ref('Ok')),
+      },
+    },
+  },
+
   '/api/auth/register': {
     post: {
       tags: ['Auth'],
@@ -564,6 +576,7 @@ module.exports = {
   },
   servers: [{ url: '/', description: 'This host' }],
   tags: [
+    { name: 'System', description: 'Service liveness.' },
     { name: 'Auth', description: 'Registration and login.' },
     { name: 'Sessions', description: 'Workout sessions, their exercises, and sets.' },
     { name: 'Exercises', description: 'Exercise names from the user\'s history.' },

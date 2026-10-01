@@ -6,7 +6,6 @@ import WorkoutHistory from './components/WorkoutHistory';
 import UserPicker from './components/UserPicker';
 import Settings from './components/Settings';
 import { getExercises, getChartData, getSettings, updateSettings } from './api';
-import { Toaster } from 'react-hot-toast';
 
 const defaultSettings = { defaultSetCount: 3, showTimeOfDay: true, darkMode: false };
 
@@ -72,7 +71,6 @@ export default function App() {
 
   return (
     <div className="app-container">
-      <Toaster position="top-center" toastOptions={{ duration: 2000 }} />
       <div className="app-header">
         <h1 style={{ margin: 0 }}>Fitness Tracker</h1>
         <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

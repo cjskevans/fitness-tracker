@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { getSessions, updateSession, deleteSession } from '../api';
 import exercises from '../exercises';
 
@@ -62,15 +63,19 @@ export default function WorkoutHistory({ refreshKey, onChanged }) {
       load();
       onChanged();
     } catch {
-      alert('Failed to save. Please try again.');
+      toast.error('Failed to save. Please try again.');
     }
   };
 
   const handleDelete = async (sessionId) => {
     if (!window.confirm('Delete this workout session?')) return;
-    await deleteSession(sessionId);
-    load();
-    onChanged();
+    try {
+      await deleteSession(sessionId);
+      load();
+      onChanged();
+    } catch {
+      toast.error('Failed to delete. Please try again.');
+    }
   };
 
   // Edit form helpers
