@@ -1,38 +1,52 @@
-const request = require('supertest');
-const app = require('../index');
-const routes = require('../routes');
-const spec = require('../openapi');
+import request from 'supertest';
+import type { OpenAPIV3 } from 'openapi-types';
+import app from '../src/index';
+import routes from '../src/routes';
+import spec from '../src/openapi';
 
-const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'];
+const HTTP_METHODS = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options'] as const;
+
+// Express keeps registered routes on an undocumented `stack`, so its typings
+// don't describe it; this is the slice of each layer the walk below needs.
+interface RouterLayer {
+  route?: { path: string; methods: Record<string, boolean> };
+}
 
 // Walk the mounted routers and rebuild each endpoint as it appears in an
 // OpenAPI document: '/api/sessions' + '/:id' -> '/api/sessions/{id}'.
 function liveEndpoints() {
-  const found = [];
+  const found: string[] = [];
   for (const [mountPath, router] of Object.entries(routes)) {
-    for (const layer of router.stack) {
+    for (const layer of router.stack as RouterLayer[]) {
       if (!layer.route) continue;
       const suffix = layer.route.path === '/' ? '' : layer.route.path;
       const path = (mountPath + suffix).replace(/:(\w+)/g, '{$1}');
       for (const method of Object.keys(layer.route.methods)) {
-        if (HTTP_METHODS.includes(method)) found.push(`${method.toUpperCase()} ${path}`);
+        if ((HTTP_METHODS as readonly string[]).includes(method)) found.push(`${method.toUpperCase()} ${path}`);
       }
     }
   }
   return found.sort();
 }
 
-function documentedEndpoints() {
-  const found = [];
-  for (const [path, operations] of Object.entries(spec.paths)) {
-    for (const method of Object.keys(operations)) {
-      if (HTTP_METHODS.includes(method)) found.push(`${method.toUpperCase()} ${path}`);
+// Every operation in the spec as [label, operation], skipping path-level keys
+// like `parameters` that sit alongside the methods.
+function documentedOperations(): [string, OpenAPIV3.OperationObject][] {
+  const found: [string, OpenAPIV3.OperationObject][] = [];
+  for (const [path, item] of Object.entries(spec.paths)) {
+    for (const method of HTTP_METHODS) {
+      const operation = item?.[method];
+      if (operation) found.push([`${method.toUpperCase()} ${path}`, operation]);
     }
   }
-  return found.sort();
+  return found;
 }
 
-function collectRefs(node, acc = []) {
+function documentedEndpoints() {
+  return documentedOperations().map(([label]) => label).sort();
+}
+
+function collectRefs(node: unknown, acc: string[] = []) {
   if (Array.isArray(node)) {
     node.forEach(item => collectRefs(item, acc));
   } else if (node && typeof node === 'object') {
@@ -52,7 +66,10 @@ describe('OpenAPI spec', () => {
   it('resolves every internal $ref', () => {
     for (const ref of collectRefs(spec)) {
       expect(ref.startsWith('#/')).toBe(true);
-      const target = ref.slice(2).split('/').reduce((node, key) => node?.[key], spec);
+      const target = ref.slice(2).split('/').reduce<unknown>(
+        (node, key) => (node as Record<string, unknown> | undefined)?.[key],
+        spec,
+      );
       expect(target).toBeDefined();
     }
   });
@@ -60,12 +77,9 @@ describe('OpenAPI spec', () => {
   it('requires bearer auth by default and exempts only the auth and health routes', () => {
     expect(spec.security).toEqual([{ bearerAuth: [] }]);
 
-    const publicOps = [];
-    for (const [path, operations] of Object.entries(spec.paths)) {
-      for (const [method, operation] of Object.entries(operations)) {
-        if (operation.security?.length === 0) publicOps.push(`${method.toUpperCase()} ${path}`);
-      }
-    }
+    const publicOps = documentedOperations()
+      .filter(([, operation]) => operation.security?.length === 0)
+      .map(([label]) => label);
     expect(publicOps.sort()).toEqual([
       'GET /api/health',
       'POST /api/auth/login',
@@ -74,23 +88,16 @@ describe('OpenAPI spec', () => {
   });
 
   it('gives every documented operation a summary and a tag', () => {
-    for (const [path, operations] of Object.entries(spec.paths)) {
-      for (const [method, operation] of Object.entries(operations)) {
-        if (!HTTP_METHODS.includes(method)) continue;
-        const label = `${method.toUpperCase()} ${path}`;
-        expect(`${label}: ${operation.summary ?? ''}`).not.toBe(`${label}: `);
-        expect(operation.tags).toEqual([expect.any(String)]);
-      }
+    for (const [label, operation] of documentedOperations()) {
+      expect(`${label}: ${operation.summary ?? ''}`).not.toBe(`${label}: `);
+      expect(operation.tags).toEqual([expect.any(String)]);
     }
   });
 
   it('declares every tag it uses', () => {
-    const declared = new Set(spec.tags.map(t => t.name));
-    for (const operations of Object.values(spec.paths)) {
-      for (const [method, operation] of Object.entries(operations)) {
-        if (!HTTP_METHODS.includes(method)) continue;
-        operation.tags.forEach(tag => expect(declared).toContain(tag));
-      }
+    const declared = new Set(spec.tags?.map(t => t.name));
+    for (const [, operation] of documentedOperations()) {
+      operation.tags?.forEach(tag => expect(declared).toContain(tag));
     }
   });
 });

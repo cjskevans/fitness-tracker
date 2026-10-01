@@ -2,11 +2,13 @@
 //
 // Served as JSON at GET /api/docs.json and rendered by Swagger UI at GET /api/docs.
 
-const bearer = [{ bearerAuth: [] }];
+import type { OpenAPIV3 } from 'openapi-types';
+
+const bearer: OpenAPIV3.SecurityRequirementObject[] = [{ bearerAuth: [] }];
 
 // ── Reusable pieces ──────────────────────────────────────────────────────────
 
-const schemas = {
+const schemas: Record<string, OpenAPIV3.SchemaObject> = {
   Error: {
     type: 'object',
     properties: { error: { type: 'string' } },
@@ -257,28 +259,31 @@ const schemas = {
   },
 };
 
-const errorResponse = (description) => ({
+const errorResponse = (description: string): OpenAPIV3.ResponseObject => ({
   description,
   content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
 });
 
-const responses = {
+const responses: Record<string, OpenAPIV3.ResponseObject> = {
   BadRequest: errorResponse('Validation failed.'),
   Unauthorized: errorResponse('Missing or invalid bearer token.'),
   Forbidden: errorResponse('The resource belongs to another user.'),
   TooManyRequests: errorResponse('Rate limit exceeded (10 requests per 15 minutes).'),
 };
 
-const json = (description, schema) => ({
+const json = (
+  description: string,
+  schema: OpenAPIV3.SchemaObject | OpenAPIV3.ReferenceObject,
+): OpenAPIV3.ResponseObject => ({
   description,
   content: { 'application/json': { schema } },
 });
 
-const ref = (name) => ({ $ref: '#/components/schemas/' + name });
-const arrayOf = (name) => ({ type: 'array', items: ref(name) });
-const use = (name) => ({ $ref: '#/components/responses/' + name });
+const ref = (name: string): OpenAPIV3.ReferenceObject => ({ $ref: '#/components/schemas/' + name });
+const arrayOf = (name: string): OpenAPIV3.ArraySchemaObject => ({ type: 'array', items: ref(name) });
+const use = (name: string): OpenAPIV3.ReferenceObject => ({ $ref: '#/components/responses/' + name });
 
-const idParam = {
+const idParam: OpenAPIV3.ParameterObject = {
   name: 'id',
   in: 'path',
   required: true,
@@ -287,7 +292,7 @@ const idParam = {
 
 // ── Paths ────────────────────────────────────────────────────────────────────
 
-const paths = {
+const paths: OpenAPIV3.PathsObject = {
   '/api/health': {
     get: {
       tags: ['System'],
@@ -560,7 +565,7 @@ const paths = {
   },
 };
 
-module.exports = {
+const spec: OpenAPIV3.Document = {
   openapi: '3.0.3',
   info: {
     title: 'Fitness Tracker API',
@@ -600,3 +605,5 @@ module.exports = {
   },
   paths,
 };
+
+export default spec;

@@ -1,12 +1,18 @@
-const express = require('express');
-const db = require('../db');
-const { requireAuth } = require('../middleware/auth');
+import express from 'express';
+import db from '../db';
+import { requireAuth } from '../middleware/auth';
 
 const router = express.Router();
 
+interface PersonalRecord {
+  exercise: string;
+  weight: number;
+  reps: number;
+}
+
 router.get('/', requireAuth, (req, res) => {
   const { userId } = req.user;
-  const rows = db.prepare(`
+  const rows = db.prepare<[number], PersonalRecord>(`
     WITH ranked AS (
       SELECT
         we.exercise,
@@ -27,4 +33,4 @@ router.get('/', requireAuth, (req, res) => {
   res.json(rows);
 });
 
-module.exports = router;
+export default router;

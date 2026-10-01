@@ -42,8 +42,8 @@ Read the actual diff, not just the file list. Specifically:
 - If `package.json` dependencies changed, confirm the matching
   `package-lock.json` changed too. A lock file out of sync with its manifest is
   a broken install for anyone who clones this. Flag it if they disagree.
-- If a route was added or changed under `server/routes/`, confirm
-  `server/openapi.js` documents it — `server/__tests__/openapi.test.js` enforces
+- If a route was added or changed under `server/src/routes/`, confirm
+  `server/src/openapi.ts` documents it — `server/__tests__/openapi.test.ts` enforces
   this, so step 1 should have caught it, but say which route is undocumented
   rather than making me read a test failure.
 

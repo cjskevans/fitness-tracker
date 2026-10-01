@@ -1,17 +1,35 @@
-const express = require('express');
-const db = require('../db');
-const { requireAuth } = require('../middleware/auth');
+import express from 'express';
+import db from '../db';
+import { requireAuth } from '../middleware/auth';
 
 const router = express.Router();
 
+interface ImportedSet {
+  setNumber: number;
+  reps: number;
+  weight: number;
+}
+
+interface ImportedRow extends ImportedSet {
+  date: string;
+  timeOfDay: string | null;
+  exercise: string;
+}
+
+interface ImportedSession {
+  date: string;
+  timeOfDay: string | null;
+  exercises: Map<string, ImportedSet[]>;
+}
+
 router.post('/', requireAuth, (req, res) => {
-  const { csv } = req.body;
+  const { csv }: { csv?: string } = req.body;
   if (!csv) return res.status(400).json({ error: 'CSV content is required' });
 
   const lines = csv.split('\n').map(l => l.trim()).filter(Boolean);
   if (lines.length < 2) return res.status(400).json({ error: 'CSV has no data rows' });
 
-  const rows = [];
+  const rows: ImportedRow[] = [];
   for (const line of lines.slice(1)) {
     const [date, timeOfDay, exercise, setNumber, reps, weight] = line.split(',');
     if (!date || !exercise || !reps || !weight) {
@@ -28,17 +46,20 @@ router.post('/', requireAuth, (req, res) => {
   }
 
   // Group by date+timeOfDay — each unique combo becomes one session
-  const sessionMap = new Map();
+  const sessionMap = new Map<string, ImportedSession>();
   for (const row of rows) {
     const key = `${row.date}|${row.timeOfDay ?? ''}`;
-    if (!sessionMap.has(key)) {
-      sessionMap.set(key, { date: row.date, timeOfDay: row.timeOfDay, exercises: new Map() });
+    let session = sessionMap.get(key);
+    if (!session) {
+      session = { date: row.date, timeOfDay: row.timeOfDay, exercises: new Map() };
+      sessionMap.set(key, session);
     }
-    const session = sessionMap.get(key);
-    if (!session.exercises.has(row.exercise)) {
-      session.exercises.set(row.exercise, []);
+    let sets = session.exercises.get(row.exercise);
+    if (!sets) {
+      sets = [];
+      session.exercises.set(row.exercise, sets);
     }
-    session.exercises.get(row.exercise).push({ setNumber: row.setNumber, reps: row.reps, weight: row.weight });
+    sets.push({ setNumber: row.setNumber, reps: row.reps, weight: row.weight });
   }
 
   const { userId } = req.user;
@@ -64,4 +85,4 @@ router.post('/', requireAuth, (req, res) => {
   res.json({ imported });
 });
 
-module.exports = router;
+export default router;

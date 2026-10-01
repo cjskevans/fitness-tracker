@@ -1,4 +1,4 @@
-const express = require('express');
+import express from 'express';
 
 const router = express.Router();
 
@@ -6,4 +6,4 @@ const router = express.Router();
 // is unreachable, when the token may be absent or stale.
 router.get('/', (req, res) => res.json({ ok: true }));
 
-module.exports = router;
+export default router;

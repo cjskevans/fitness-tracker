@@ -1,13 +1,31 @@
-const express = require('express');
-const db = require('../db');
-const { requireAuth } = require('../middleware/auth');
+import express from 'express';
+import db from '../db';
+import { requireAuth } from '../middleware/auth';
 
 const router = express.Router();
+
+interface Template {
+  id: number;
+  name: string;
+  exercises: string[];
+}
+
+interface TemplateRow {
+  id: number;
+  name: string;
+  exercise: string;
+  order_num: number;
+}
+
+interface LastSessionExercise {
+  exercise: string;
+  sets: { reps: number; weight: number }[];
+}
 
 router.get('/', requireAuth, (req, res) => {
   const { userId } = req.user;
 
-  const rows = db.prepare(`
+  const rows = db.prepare<[number], TemplateRow>(`
     SELECT t.id, t.name, te.exercise, te.order_num
     FROM templates t
     JOIN template_exercises te ON te.template_id = t.id
@@ -15,22 +33,23 @@ router.get('/', requireAuth, (req, res) => {
     ORDER BY t.name ASC, te.order_num ASC
   `).all(userId);
 
-  const templateMap = new Map();
-  const result = [];
+  const templateMap = new Map<number, Template>();
+  const result: Template[] = [];
   for (const row of rows) {
-    if (!templateMap.has(row.id)) {
-      const tpl = { id: row.id, name: row.name, exercises: [] };
+    let tpl = templateMap.get(row.id);
+    if (!tpl) {
+      tpl = { id: row.id, name: row.name, exercises: [] };
       templateMap.set(row.id, tpl);
       result.push(tpl);
     }
-    templateMap.get(row.id).exercises.push(row.exercise);
+    tpl.exercises.push(row.exercise);
   }
   res.json(result);
 });
 
 router.post('/', requireAuth, (req, res) => {
   const { userId } = req.user;
-  const { name, exercises } = req.body;
+  const { name, exercises }: { name?: string; exercises?: string[] } = req.body;
   if (!name?.trim() || !Array.isArray(exercises) || exercises.length === 0) {
     return res.status(400).json({ error: 'name and at least one exercise are required' });
   }
@@ -47,9 +66,11 @@ router.post('/', requireAuth, (req, res) => {
   res.status(201).json({ id });
 });
 
-router.delete('/:id', requireAuth, (req, res) => {
+router.delete<{ id: string }>('/:id', requireAuth, (req, res) => {
   const { userId } = req.user;
-  const template = db.prepare('SELECT user_id FROM templates WHERE id = ?').get(req.params.id);
+  const template = db
+    .prepare<[string], { user_id: number }>('SELECT user_id FROM templates WHERE id = ?')
+    .get(req.params.id);
   if (!template || template.user_id !== userId) {
     return res.status(403).json({ error: 'Forbidden' });
   }
@@ -57,15 +78,18 @@ router.delete('/:id', requireAuth, (req, res) => {
   res.status(204).send();
 });
 
-router.get('/:id/last-session', requireAuth, (req, res) => {
-  const templateExercises = db.prepare(
-    'SELECT exercise FROM template_exercises WHERE template_id = ? ORDER BY order_num'
-  ).all(req.params.id).map(r => r.exercise);
+router.get<{ id: string }>('/:id/last-session', requireAuth, (req, res) => {
+  const templateExercises = db
+    .prepare<[string], { exercise: string }>(
+      'SELECT exercise FROM template_exercises WHERE template_id = ? ORDER BY order_num',
+    )
+    .all(req.params.id)
+    .map(r => r.exercise);
 
   if (!templateExercises.length) return res.json(null);
 
   const placeholders = templateExercises.map(() => '?').join(',');
-  const session = db.prepare(`
+  const session = db.prepare<unknown[], { id: number; date: string; time_of_day: string | null }>(`
     SELECT s.id, s.date, s.time_of_day
     FROM sessions s
     WHERE s.user_id = (SELECT user_id FROM templates WHERE id = ?)
@@ -81,7 +105,7 @@ router.get('/:id/last-session', requireAuth, (req, res) => {
 
   if (!session) return res.json(null);
 
-  const rows = db.prepare(`
+  const rows = db.prepare<[number], { exercise: string; order_num: number; set_number: number; reps: number; weight: number }>(`
     SELECT we.exercise, we.order_num, st.set_number, st.reps, st.weight
     FROM workout_exercises we
     JOIN sets st ON st.workout_exercise_id = we.id
@@ -89,12 +113,14 @@ router.get('/:id/last-session', requireAuth, (req, res) => {
     ORDER BY we.order_num, st.set_number
   `).all(session.id);
 
-  const exerciseMap = new Map();
+  const exerciseMap = new Map<string, LastSessionExercise>();
   for (const row of rows) {
-    if (!exerciseMap.has(row.exercise)) {
-      exerciseMap.set(row.exercise, { exercise: row.exercise, sets: [] });
+    let entry = exerciseMap.get(row.exercise);
+    if (!entry) {
+      entry = { exercise: row.exercise, sets: [] };
+      exerciseMap.set(row.exercise, entry);
     }
-    exerciseMap.get(row.exercise).sets.push({ reps: row.reps, weight: row.weight });
+    entry.sets.push({ reps: row.reps, weight: row.weight });
   }
 
   res.json({
@@ -104,4 +130,4 @@ router.get('/:id/last-session', requireAuth, (req, res) => {
   });
 });
 
-module.exports = router;
+export default router;
