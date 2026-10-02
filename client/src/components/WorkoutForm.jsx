@@ -3,7 +3,8 @@ import { logSession, getTemplates, createTemplate, deleteTemplateById, getLastTe
 import toast from 'react-hot-toast';
 import exercises from '../exercises';
 
-const today = () => new Date().toISOString().split('T')[0];
+// en-CA formats as YYYY-MM-DD in the browser's timezone; toISOString() would give the UTC date.
+const today = () => new Date().toLocaleDateString('en-CA');
 const muscleGroups = Object.keys(exercises);
 const emptySet = () => ({ reps: '', weight: '' });
 const emptyBlock = (setCount = 1) => ({ id: Date.now() + Math.random(), muscleGroup: '', exercise: '', customName: '', sets: Array.from({ length: setCount }, emptySet) });

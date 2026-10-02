@@ -7,7 +7,7 @@ const muscleGroups = Object.keys(exercises);
 const emptySet = () => ({ reps: '', weight: '' });
 const emptyBlock = () => ({ id: Date.now() + Math.random(), muscleGroup: '', exercise: '', customName: '', sets: [emptySet()] });
 const isKnownExercise = (name) => muscleGroups.some(g => exercises[g].includes(name));
-const today = () => new Date().toISOString().split('T')[0];
+const today = () => new Date().toLocaleDateString('en-CA');
 
 const getMuscleGroup = (exerciseName) =>
   muscleGroups.find(g => exercises[g].includes(exerciseName)) || '';

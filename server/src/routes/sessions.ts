@@ -85,8 +85,10 @@ function validateSession({ date, timeOfDay, exercises }: SessionInput): Validati
   if (!date || !Array.isArray(exercises) || exercises.length === 0) {
     return { error: 'date and at least one exercise are required' };
   }
-  const today = new Date().toISOString().split('T')[0]!;
-  if (date > today) {
+  // The date is the client's local date and we don't know its timezone, so measure
+  // "future" against the furthest-ahead zone (UTC+14) rather than UTC.
+  const latestToday = new Date(Date.now() + 14 * 3600_000).toISOString().split('T')[0]!;
+  if (date > latestToday) {
     return { error: 'Cannot log workouts in the future' };
   }
   for (const ex of exercises) {
