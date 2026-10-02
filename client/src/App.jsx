@@ -5,7 +5,7 @@ import PersonalRecords from './components/PersonalRecords';
 import WorkoutHistory from './components/WorkoutHistory';
 import UserPicker from './components/UserPicker';
 import Settings from './components/Settings';
-import { getExercises, getChartData, getSettings, updateSettings } from './api';
+import { getExercises, getChartData, getSettings, updateSettings, endDemo } from './api';
 
 const defaultSettings = { defaultSetCount: 3, showTimeOfDay: true, darkMode: false };
 
@@ -56,7 +56,10 @@ export default function App() {
     setSettings(newSettings);
   };
 
-  const switchUser = () => {
+  const switchUser = async () => {
+    // Awaited because the request interceptor reads ft_token after this returns.
+    // A failed delete is swept up server-side after a day.
+    if (user?.demo) await endDemo().catch(() => {});
     localStorage.removeItem('ft_user');
     localStorage.removeItem('ft_token');
     setUser(null);

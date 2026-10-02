@@ -1,10 +1,12 @@
+import crypto from 'crypto';
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
 import db from '../db';
-import { JWT_SECRET, type AuthPayload } from '../middleware/auth';
+import { JWT_SECRET, requireAuth, type AuthPayload } from '../middleware/auth';
 import asyncHandler from '../middleware/asyncHandler';
+import { seedDemoData, deleteUser } from '../demo';
 
 const router = express.Router();
 
@@ -27,8 +29,8 @@ interface UserRow {
   password_hash: string | null;
 }
 
-const signToken = (userId: number) =>
-  jwt.sign({ userId } satisfies AuthPayload, JWT_SECRET, { expiresIn: '7d' });
+const signToken = (userId: number, expiresIn: '7d' | '1d' = '7d') =>
+  jwt.sign({ userId } satisfies AuthPayload, JWT_SECRET, { expiresIn });
 
 router.post('/register', authLimiter, asyncHandler(async (req, res) => {
   const body: Credentials = req.body;
@@ -65,5 +67,32 @@ router.post('/login', authLimiter, asyncHandler(async (req, res) => {
 
   res.json({ token: signToken(user.id), userId: user.id, username: user.username });
 }));
+
+router.post('/demo', authLimiter, (req, res) => {
+  // Visitors who close the tab never hit DELETE /demo, so each new demo sweeps up
+  // the abandoned ones. 1 day matches the demo token's lifetime.
+  const stale = db
+    .prepare<[], { user_id: number }>("SELECT user_id FROM demo_users WHERE created_at < datetime('now', '-1 day')")
+    .all();
+  for (const { user_id } of stale) deleteUser(user_id);
+
+  // No password hash, so /login can never authenticate as this user.
+  const { lastInsertRowid } = db
+    .prepare('INSERT INTO users (username) VALUES (?)')
+    .run(`demo-${crypto.randomUUID()}`);
+  const userId = Number(lastInsertRowid);
+  db.prepare('INSERT INTO demo_users (user_id) VALUES (?)').run(userId);
+  seedDemoData(userId);
+
+  res.status(201).json({ token: signToken(userId, '1d'), userId, username: 'demo' });
+});
+
+router.delete('/demo', requireAuth, (req, res) => {
+  const { userId } = req.user;
+  const isDemo = db.prepare('SELECT 1 FROM demo_users WHERE user_id = ?').get(userId);
+  if (!isDemo) return res.status(403).json({ error: 'Not a demo account' });
+  deleteUser(userId);
+  res.status(204).end();
+});
 
 export default router;

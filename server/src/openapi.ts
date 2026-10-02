@@ -35,13 +35,13 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
     properties: {
       token: {
         type: 'string',
-        description: 'JWT encoding userId. Expires after 7 days.',
+        description: 'JWT encoding userId. Expires after 7 days (1 day for demo users).',
         example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
       },
       userId: { type: 'integer', example: 1 },
       username: {
         type: 'string',
-        description: 'Returned by login only.',
+        description: 'Returned by login and demo only.',
         example: 'alice',
       },
     },
@@ -339,6 +339,31 @@ const paths: OpenAPIV3.PathsObject = {
         400: use('BadRequest'),
         401: errorResponse('Invalid credentials.'),
         429: use('TooManyRequests'),
+      },
+    },
+  },
+
+  '/api/auth/demo': {
+    post: {
+      tags: ['Auth'],
+      summary: 'Start a demo session',
+      description: 'Creates a throwaway user pre-filled with ~6 months of workouts and three '
+        + 'templates, and returns a token for it that expires after 1 day. Demo users older '
+        + 'than 1 day are deleted on each call. Rate limited to 10 requests per 15 minutes per IP.',
+      security: [],
+      responses: {
+        201: json('Demo user created; token returned.', ref('AuthResponse')),
+        429: use('TooManyRequests'),
+      },
+    },
+    delete: {
+      tags: ['Auth'],
+      summary: 'End a demo session',
+      description: 'Deletes the calling demo user and all of their data.',
+      responses: {
+        204: { description: 'Demo user deleted.' },
+        401: use('Unauthorized'),
+        403: errorResponse('The caller is not a demo user.'),
       },
     },
   },
