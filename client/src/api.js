@@ -43,6 +43,12 @@ export const register = (username, password) =>
 export const login = (username, password) =>
   api.post('/auth/login', { username, password }).then(r => r.data);
 
+export const startDemo = () =>
+  api.post('/auth/demo').then(r => r.data);
+
+export const endDemo = () =>
+  api.delete('/auth/demo');
+
 export const logSession = (session) =>
   api.post('/sessions', session).then(r => r.data);
 

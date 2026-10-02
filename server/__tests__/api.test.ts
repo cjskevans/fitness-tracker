@@ -76,6 +76,36 @@ describe('POST /api/auth/login', () => {
   });
 });
 
+describe('/api/auth/demo', () => {
+  const startDemo = async () => (await request(app).post('/api/auth/demo')).body.token as string;
+  const workout = { date: '2024-01-01', exercises: [{ exercise: 'Curl', sets: [{ reps: 10, weight: 30 }] }] };
+
+  it('gives each visitor a private, pre-filled account they can add to', async () => {
+    const a = await startDemo();
+    const b = await startDemo();
+    const before = (await authed(request(app).get('/api/sessions'), a)).body.length;
+    expect(before).toBeGreaterThan(50);
+
+    expect((await authed(request(app).post('/api/sessions'), a).send(workout)).status).toBe(201);
+    expect((await authed(request(app).get('/api/sessions'), a)).body).toHaveLength(before + 1);
+    expect((await authed(request(app).get('/api/sessions'), b)).body).toHaveLength(before);
+  });
+
+  it('deletes the demo user and their data on exit', async () => {
+    const token = await startDemo();
+    expect((await authed(request(app).delete('/api/auth/demo'), token)).status).toBe(204);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM sessions').get()).toEqual({ n: 0 });
+    expect(db.prepare('SELECT COUNT(*) AS n FROM users').get()).toEqual({ n: 0 });
+  });
+
+  it('refuses to delete a real account', async () => {
+    const { token } = await registerAndLogin();
+    await authed(request(app).post('/api/sessions'), token).send(workout);
+    expect((await authed(request(app).delete('/api/auth/demo'), token)).status).toBe(403);
+    expect(db.prepare('SELECT COUNT(*) AS n FROM sessions').get()).toEqual({ n: 1 });
+  });
+});
+
 // ── Sessions ─────────────────────────────────────────────────────────────────
 
 describe('POST /api/sessions', () => {

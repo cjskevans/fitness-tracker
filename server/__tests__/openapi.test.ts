@@ -82,6 +82,7 @@ describe('OpenAPI spec', () => {
       .map(([label]) => label);
     expect(publicOps.sort()).toEqual([
       'GET /api/health',
+      'POST /api/auth/demo',
       'POST /api/auth/login',
       'POST /api/auth/register',
     ]);

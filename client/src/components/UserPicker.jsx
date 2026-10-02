@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { register, login } from '../api';
+import { register, login, startDemo } from '../api';
 
 export default function UserPicker({ onUser }) {
   const [mode, setMode] = useState('login');
@@ -35,6 +35,21 @@ export default function UserPicker({ onUser }) {
     }
   };
 
+  const viewDemo = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const data = await startDemo();
+      localStorage.setItem('ft_token', data.token);
+      const user = { id: data.userId, username: data.username, demo: true };
+      localStorage.setItem('ft_user', JSON.stringify(user));
+      onUser(user);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Something went wrong. Try again.');
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={overlay}>
       <div style={card}>
@@ -66,10 +81,18 @@ export default function UserPicker({ onUser }) {
           </button>
           {error && <p style={{ color: '#dc2626', marginTop: '0.5rem', fontSize: '0.875rem', margin: '0.5rem 0 0' }}>{error}</p>}
         </form>
+        <button onClick={viewDemo} disabled={loading} style={{ ...btnStyle, ...demoBtn }}>
+          View demo
+        </button>
       </div>
     </div>
   );
 }
+
+const demoBtn = {
+  marginTop: '1rem', background: 'var(--surface)', color: '#2563eb',
+  border: '1px solid #2563eb',
+};
 
 const tabBtn = (active) => ({
   flex: 1, padding: '0.4rem', fontSize: '0.875rem', cursor: 'pointer', borderRadius: 4,

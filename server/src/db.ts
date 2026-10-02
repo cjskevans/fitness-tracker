@@ -84,6 +84,13 @@ db.exec(`
     reps INTEGER NOT NULL,
     weight REAL NOT NULL
   );
+
+  -- Throwaway users created by POST /api/auth/demo. Membership here, not the
+  -- username, is what allows DELETE /api/auth/demo to remove an account.
+  CREATE TABLE IF NOT EXISTS demo_users (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 export default db;

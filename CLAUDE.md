@@ -82,6 +82,7 @@ TypeScript pinned to 6.x because ts-jest does not yet support 7. Query result sh
 - `sessions` → `workout_exercises` → `sets` — a session has ordered exercises, each with sets (reps + weight); cascade deletes on foreign keys; session insertion is a single SQLite transaction
 - `templates` → `template_exercises` — named lists of exercise names saved per user; loaded into the workout form to pre-fill exercises
 - `user_settings` — per-user preferences (default set count, show time of day, dark mode)
+- `demo_users` — throwaway accounts from the login screen's **View demo** button. `POST /api/auth/demo` creates one seeded by `server/src/demo.ts`; logging out calls `DELETE /api/auth/demo`; abandoned ones are swept after 1 day on the next demo start
 
 **PR detection**: `POST /api/sessions` returns a `newPRs` array for any exercise where the logged weight × reps beats the user's previous best. Toasts are shown via `react-hot-toast`.
 
