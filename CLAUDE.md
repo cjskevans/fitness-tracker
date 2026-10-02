@@ -59,7 +59,7 @@ Full-stack fitness tracker — React frontend + Express/SQLite backend — run a
 
 **Client** (`client/src/`): React 18 + Vite. `App.jsx` is the top-level state owner; it holds user identity, dark mode preference, and exercise selection, and passes refresh triggers down to child components. State that survives page reload lives in `localStorage` (`ft_user`, `ft_dark`, `ft_token`). All API calls are in `api.js` (axios). An axios request interceptor attaches the JWT token to every request automatically. Styling is inline CSS throughout, with CSS custom properties in `index.css` driving the light/dark theme. There is no CSS-in-JS, CSS modules, or Tailwind.
 
-**Server** (`server/`): Express 4 on port 3001, written in strict TypeScript. Source is in `server/src/`; `tsc -p tsconfig.build.json` compiles it to `server/dist/` (gitignored), which is what `npm start` runs. Dev runs the source directly through `tsx`, so there is no build step while developing. `tsconfig.json` typechecks `src/` and `__tests__/` without emitting, and the server's `npm test` runs it first, so the husky hook rejects type errors as well as test failures. `db.ts` initializes the SQLite schema on startup. `index.ts` is a thin router-mount file — all route logic lives in `server/src/routes/`. Data is stored in `server/workouts.db` (gitignored). Pass `NODE_ENV=test` to use an in-memory SQLite database (used by Jest).
+**Server** (`server/`): Express 5 on port 3001, written in strict TypeScript. Source is in `server/src/`; `tsc -p tsconfig.build.json` compiles it to `server/dist/` (gitignored), which is what `npm start` runs. Dev runs the source directly through `tsx`, so there is no build step while developing. `tsconfig.json` typechecks `src/` and `__tests__/` without emitting, and the server's `npm test` runs it first, so the husky hook rejects type errors as well as test failures. `db.ts` initializes the SQLite schema on startup. `index.ts` is a thin router-mount file — all route logic lives in `server/src/routes/`. Data is stored in `server/workouts.db` (gitignored). Pass `NODE_ENV=test` to use an in-memory SQLite database (used by Jest).
 
 TypeScript pinned to 6.x because ts-jest does not yet support 7. Query result shapes are declared at each call site with `db.prepare<Params, Row>()` — better-sqlite3 cannot infer them from SQL, so a row interface that disagrees with its query compiles fine; keep the two side by side.
 
@@ -70,7 +70,6 @@ TypeScript pinned to 6.x because ts-jest does not yet support 7. Query result sh
 - `server/src/openapi.ts` — OpenAPI 3.0 spec for the whole API, typed against `openapi-types`
 - `server/src/middleware/auth.ts` — `requireAuth` JWT middleware + `JWT_SECRET`
 - `server/src/middleware/errorHandler.ts` — centralised error handler (4-arg Express middleware)
-- `server/src/middleware/asyncHandler.ts` — wraps async route handlers so errors propagate to errorHandler
 - `server/src/middleware/sanitize.ts` — strips HTML tags from all request body strings
 
 **Dev proxy**: Vite proxies `/api/*` to `localhost:3001`, so the client only needs relative `/api` paths in development.

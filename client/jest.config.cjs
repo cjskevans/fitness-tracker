@@ -5,7 +5,6 @@ module.exports = {
     '^.+\\.[jt]sx?$': 'babel-jest',
   },
   moduleNameMapper: {
-    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '^recharts$': '<rootDir>/src/__mocks__/recharts.cjs',
   },
 };

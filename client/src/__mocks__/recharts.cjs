@@ -10,6 +10,5 @@ module.exports = {
   YAxis: noop,
   CartesianGrid: noop,
   Tooltip: noop,
-  Legend: noop,
   ResponsiveContainer: passthrough,
 };

@@ -67,7 +67,7 @@ export default function App() {
     setSelectedExercise('');
     setChartData([]);
     setShowSettings(false);
-    setSettings({ ...defaultSettings, darkMode: false });
+    setSettings(defaultSettings);
   };
 
   if (!user) return <UserPicker onUser={setUser} />;

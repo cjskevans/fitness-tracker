@@ -10,7 +10,6 @@
 - [ ] Workout streaks — track consecutive days/weeks with sessions logged
 - [ ] Rest timer — countdown between sets
 - [ ] Exercise notes — add a note to a set or session (e.g. "felt strong", "shoulder tight")
-- [ ] Export data — download workout history as CSV
 
 ## UI
 - [ ] Charts for body weight trend alongside strength progress

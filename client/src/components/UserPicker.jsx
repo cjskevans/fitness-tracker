@@ -10,6 +10,12 @@ export default function UserPicker({ onUser }) {
 
   const switchMode = (m) => { setMode(m); setError(''); };
 
+  const signIn = (token, user) => {
+    localStorage.setItem('ft_token', token);
+    localStorage.setItem('ft_user', JSON.stringify(user));
+    onUser(user);
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     setError('');
@@ -17,10 +23,7 @@ export default function UserPicker({ onUser }) {
     try {
       const fn = mode === 'register' ? register : login;
       const data = await fn(username.trim(), password);
-      localStorage.setItem('ft_token', data.token);
-      const user = { id: data.userId, username: username.trim() };
-      localStorage.setItem('ft_user', JSON.stringify(user));
-      onUser(user);
+      signIn(data.token, { id: data.userId, username: username.trim() });
     } catch (err) {
       const status = err.response?.status;
       if (mode === 'register' && status === 409) {
@@ -40,10 +43,7 @@ export default function UserPicker({ onUser }) {
     setLoading(true);
     try {
       const data = await startDemo();
-      localStorage.setItem('ft_token', data.token);
-      const user = { id: data.userId, username: data.username, demo: true };
-      localStorage.setItem('ft_user', JSON.stringify(user));
-      onUser(user);
+      signIn(data.token, { id: data.userId, username: data.username, demo: true });
     } catch (err) {
       setError(err.response?.data?.error || 'Something went wrong. Try again.');
       setLoading(false);

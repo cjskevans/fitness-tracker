@@ -10,32 +10,6 @@ const db = new Database(dbPath);
 
 db.pragma('foreign_keys = ON');
 
-// Migrate to session-based schema if not already there
-const hasSessionsTable = db.prepare(
-  "SELECT name FROM sqlite_master WHERE type='table' AND name='sessions'"
-).get();
-
-if (!hasSessionsTable) {
-  db.exec(`
-    DROP TABLE IF EXISTS sets;
-    DROP TABLE IF EXISTS workout_exercises;
-    DROP TABLE IF EXISTS workouts;
-  `);
-}
-
-// Add password_hash to users if this is an existing DB without it
-const hasPasswordHash = db
-  .prepare("SELECT * FROM pragma_table_info('users') WHERE name='password_hash'")
-  .get();
-if (!hasPasswordHash) {
-  const usersTableExists = db
-    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
-    .get();
-  if (usersTableExists) {
-    db.exec("ALTER TABLE users ADD COLUMN password_hash TEXT");
-  }
-}
-
 db.exec(`
   CREATE TABLE IF NOT EXISTS user_settings (
     user_id INTEGER PRIMARY KEY REFERENCES users(id),
@@ -92,5 +66,23 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
 `);
+
+const insertExercise = db.prepare('INSERT INTO workout_exercises (session_id, exercise, order_num) VALUES (?, ?, ?)');
+const insertSet = db.prepare('INSERT INTO sets (workout_exercise_id, set_number, reps, weight) VALUES (?, ?, ?, ?)');
+
+export const insertSession = db.prepare('INSERT INTO sessions (user_id, date, time_of_day) VALUES (?, ?, ?)');
+
+interface ExerciseToInsert {
+  exercise: string;
+  sets: { reps: number; weight: number; setNumber?: number }[];
+}
+
+// Callers wrap this in their own transaction alongside the session row.
+export function insertExercises(sessionId: number | bigint | string, exercises: ExerciseToInsert[]) {
+  exercises.forEach((ex, ei) => {
+    const { lastInsertRowid: exId } = insertExercise.run(sessionId, ex.exercise, ei + 1);
+    ex.sets.forEach((s, si) => insertSet.run(exId, s.setNumber ?? si + 1, s.reps, s.weight));
+  });
+}
 
 export default db;

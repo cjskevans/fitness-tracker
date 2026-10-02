@@ -22,6 +22,9 @@ interface LastSessionExercise {
   sets: { reps: number; weight: number }[];
 }
 
+const ownsTemplate = (id: string, userId: number) =>
+  db.prepare<[string], { user_id: number }>('SELECT user_id FROM templates WHERE id = ?').get(id)?.user_id === userId;
+
 router.get('/', requireAuth, (req, res) => {
   const { userId } = req.user;
 
@@ -67,11 +70,7 @@ router.post('/', requireAuth, (req, res) => {
 });
 
 router.delete<{ id: string }>('/:id', requireAuth, (req, res) => {
-  const { userId } = req.user;
-  const template = db
-    .prepare<[string], { user_id: number }>('SELECT user_id FROM templates WHERE id = ?')
-    .get(req.params.id);
-  if (!template || template.user_id !== userId) {
+  if (!ownsTemplate(req.params.id, req.user.userId)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
   db.prepare('DELETE FROM templates WHERE id = ?').run(req.params.id);
@@ -80,10 +79,7 @@ router.delete<{ id: string }>('/:id', requireAuth, (req, res) => {
 
 router.get<{ id: string }>('/:id/last-session', requireAuth, (req, res) => {
   const { userId } = req.user;
-  const template = db
-    .prepare<[string], { user_id: number }>('SELECT user_id FROM templates WHERE id = ?')
-    .get(req.params.id);
-  if (!template || template.user_id !== userId) {
+  if (!ownsTemplate(req.params.id, userId)) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
@@ -100,7 +96,7 @@ router.get<{ id: string }>('/:id/last-session', requireAuth, (req, res) => {
   const session = db.prepare<unknown[], { id: number; date: string; time_of_day: string | null }>(`
     SELECT s.id, s.date, s.time_of_day
     FROM sessions s
-    WHERE s.user_id = (SELECT user_id FROM templates WHERE id = ?)
+    WHERE s.user_id = ?
     AND s.id IN (
       SELECT we.session_id FROM workout_exercises we
       WHERE we.exercise IN (${placeholders})
@@ -109,7 +105,7 @@ router.get<{ id: string }>('/:id/last-session', requireAuth, (req, res) => {
     )
     ORDER BY s.date DESC, s.id DESC
     LIMIT 1
-  `).get(req.params.id, ...templateExercises, templateExercises.length);
+  `).get(userId, ...templateExercises, templateExercises.length);
 
   if (!session) return res.json(null);
 

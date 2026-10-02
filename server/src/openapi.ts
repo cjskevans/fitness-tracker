@@ -8,6 +8,9 @@ const bearer: OpenAPIV3.SecurityRequirementObject[] = [{ bearerAuth: [] }];
 
 // ── Reusable pieces ──────────────────────────────────────────────────────────
 
+const ref = (name: string): OpenAPIV3.ReferenceObject => ({ $ref: '#/components/schemas/' + name });
+const arrayOf = (name: string): OpenAPIV3.ArraySchemaObject => ({ type: 'array', items: ref(name) });
+
 const schemas: Record<string, OpenAPIV3.SchemaObject> = {
   Error: {
     type: 'object',
@@ -65,7 +68,7 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
       sets: {
         type: 'array',
         minItems: 1,
-        items: { $ref: '#/components/schemas/SetInput' },
+        items: ref('SetInput'),
       },
     },
   },
@@ -89,7 +92,7 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
       exercises: {
         type: 'array',
         minItems: 1,
-        items: { $ref: '#/components/schemas/ExerciseInput' },
+        items: ref('ExerciseInput'),
       },
     },
   },
@@ -110,7 +113,7 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
       id: { type: 'integer', example: 4 },
       exercise: { type: 'string', example: 'Bench Press' },
       order_num: { type: 'integer', example: 1 },
-      sets: { type: 'array', items: { $ref: '#/components/schemas/Set' } },
+      sets: arrayOf('Set'),
     },
   },
 
@@ -122,7 +125,7 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
       time_of_day: { type: 'string', nullable: true, example: 'AM' },
       exercises: {
         type: 'array',
-        items: { $ref: '#/components/schemas/SessionExercise' },
+        items: ref('SessionExercise'),
       },
     },
   },
@@ -131,7 +134,7 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
     type: 'object',
     properties: {
       exercise: { type: 'string', example: 'Bench Press' },
-      prSet: { $ref: '#/components/schemas/SetInput' },
+      prSet: ref('SetInput'),
     },
   },
 
@@ -144,7 +147,7 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
         description:
           'One entry per exercise in this session whose best set beat the previous best '
           + '(higher weight, or equal weight at more reps). Empty when nothing was beaten.',
-        items: { $ref: '#/components/schemas/NewPR' },
+        items: ref('NewPR'),
       },
     },
   },
@@ -261,7 +264,7 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
 
 const errorResponse = (description: string): OpenAPIV3.ResponseObject => ({
   description,
-  content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } },
+  content: { 'application/json': { schema: ref('Error') } },
 });
 
 const responses: Record<string, OpenAPIV3.ResponseObject> = {
@@ -279,8 +282,6 @@ const json = (
   content: { 'application/json': { schema } },
 });
 
-const ref = (name: string): OpenAPIV3.ReferenceObject => ({ $ref: '#/components/schemas/' + name });
-const arrayOf = (name: string): OpenAPIV3.ArraySchemaObject => ({ type: 'array', items: ref(name) });
 const use = (name: string): OpenAPIV3.ReferenceObject => ({ $ref: '#/components/responses/' + name });
 
 const idParam: OpenAPIV3.ParameterObject = {

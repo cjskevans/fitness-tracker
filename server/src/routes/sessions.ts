@@ -1,5 +1,5 @@
 import express from 'express';
-import db from '../db';
+import db, { insertExercises, insertSession } from '../db';
 import { requireAuth } from '../middleware/auth';
 
 const router = express.Router();
@@ -36,11 +36,6 @@ interface ValidSession {
   date: string;
   timeOfDay: string | null;
   exercises: ValidExercise[];
-}
-
-interface BestSet {
-  weight: number;
-  reps: number;
 }
 
 interface SessionRow {
@@ -111,12 +106,8 @@ function validateSession({ date, timeOfDay, exercises }: SessionInput): Validati
   };
 }
 
-const beatsPR = (prevBest: BestSet | undefined, s: ValidSet) => {
-  if (!prevBest) return true;
-  if (s.weight > prevBest.weight) return true;
-  if (s.weight === prevBest.weight && s.reps > prevBest.reps) return true;
-  return false;
-};
+const beats = (s: ValidSet, other: ValidSet | undefined) =>
+  !other || s.weight > other.weight || (s.weight === other.weight && s.reps > other.reps);
 
 router.post('/', requireAuth, (req, res) => {
   const { userId } = req.user;
@@ -124,7 +115,7 @@ router.post('/', requireAuth, (req, res) => {
   if ('error' in result) return res.status(400).json(result);
   const { date, timeOfDay, exercises } = result.session;
 
-  const prevBestQuery = db.prepare<[number, string], BestSet>(`
+  const prevBestQuery = db.prepare<[number, string], ValidSet>(`
     SELECT st.weight, st.reps
     FROM sessions s
     JOIN workout_exercises we ON we.session_id = s.id
@@ -133,33 +124,16 @@ router.post('/', requireAuth, (req, res) => {
     ORDER BY st.weight DESC, st.reps DESC
     LIMIT 1
   `);
-  const prChecks = exercises.map(ex => ({
-    exercise: ex.exercise,
-    sets: ex.sets,
-    prevBest: prevBestQuery.get(userId, ex.exercise),
-  }));
-
-  const insertSession = db.prepare('INSERT INTO sessions (user_id, date, time_of_day) VALUES (?, ?, ?)');
-  const insertExercise = db.prepare('INSERT INTO workout_exercises (session_id, exercise, order_num) VALUES (?, ?, ?)');
-  const insertSet = db.prepare('INSERT INTO sets (workout_exercise_id, set_number, reps, weight) VALUES (?, ?, ?, ?)');
+  // Looked up before the insert, or the new sets would be their own previous best.
+  const newPRs = exercises
+    .map(ex => ({ exercise: ex.exercise, prSet: ex.sets.reduce((best, s) => beats(s, best) ? s : best) }))
+    .filter(({ exercise, prSet }) => beats(prSet, prevBestQuery.get(userId, exercise)));
 
   const sessionId = db.transaction(() => {
     const { lastInsertRowid: sid } = insertSession.run(userId, date, timeOfDay);
-    exercises.forEach((ex, ei) => {
-      const { lastInsertRowid: exId } = insertExercise.run(sid, ex.exercise, ei + 1);
-      ex.sets.forEach((s, si) => insertSet.run(exId, si + 1, s.reps, s.weight));
-    });
+    insertExercises(sid, exercises);
     return sid;
   })();
-
-  const newPRs = prChecks
-    .filter(({ prevBest, sets }) => sets.some(s => beatsPR(prevBest, s)))
-    .map(({ exercise, sets }) => ({
-      exercise,
-      prSet: sets.reduce((best, s) =>
-        s.weight > best.weight || (s.weight === best.weight && s.reps > best.reps) ? s : best
-      ),
-    }));
 
   res.status(201).json({ id: sessionId, newPRs });
 });
@@ -217,16 +191,10 @@ router.put<{ id: string }>('/:id', requireAuth, (req, res) => {
   if ('error' in result) return res.status(400).json(result);
   const { date, timeOfDay, exercises } = result.session;
 
-  const insertExercise = db.prepare('INSERT INTO workout_exercises (session_id, exercise, order_num) VALUES (?, ?, ?)');
-  const insertSet = db.prepare('INSERT INTO sets (workout_exercise_id, set_number, reps, weight) VALUES (?, ?, ?, ?)');
-
   db.transaction(() => {
     db.prepare('UPDATE sessions SET date = ?, time_of_day = ? WHERE id = ?').run(date, timeOfDay, id);
     db.prepare('DELETE FROM workout_exercises WHERE session_id = ?').run(id);
-    exercises.forEach((ex, ei) => {
-      const { lastInsertRowid: exId } = insertExercise.run(id, ex.exercise, ei + 1);
-      ex.sets.forEach((s, si) => insertSet.run(exId, si + 1, s.reps, s.weight));
-    });
+    insertExercises(id, exercises);
   })();
 
   res.json({ ok: true });

@@ -1,4 +1,4 @@
-import db from './db';
+import db, { insertExercises, insertSession } from './db';
 
 // [exercise, starting weight, weekly increase]
 const ROTATION: [string, [string, number, number][]][] = [
@@ -12,9 +12,6 @@ const TRAINING_DAYS = [1, 3, 5]; // Mon / Wed / Fri, counted back from today
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
 
 export function seedDemoData(userId: number) {
-  const insertSession = db.prepare('INSERT INTO sessions (user_id, date, time_of_day) VALUES (?, ?, ?)');
-  const insertExercise = db.prepare('INSERT INTO workout_exercises (session_id, exercise, order_num) VALUES (?, ?, ?)');
-  const insertSet = db.prepare('INSERT INTO sets (workout_exercise_id, set_number, reps, weight) VALUES (?, ?, ?, ?)');
   const insertTemplate = db.prepare('INSERT INTO templates (user_id, name) VALUES (?, ?)');
   const insertTemplateExercise = db.prepare('INSERT INTO template_exercises (template_id, exercise, order_num) VALUES (?, ?, ?)');
 
@@ -32,12 +29,11 @@ export function seedDemoData(userId: number) {
         if (date >= today) continue;
         const [, plan] = ROTATION[n % ROTATION.length]!;
         const { lastInsertRowid: sessionId } = insertSession.run(userId, isoDate(date), n % 4 === 0 ? 'AM' : 'PM');
-        plan.forEach(([exercise, base, step], i) => {
-          const { lastInsertRowid: exId } = insertExercise.run(sessionId, exercise, i + 1);
-          const weight = base + step * week;
+        insertExercises(sessionId, plan.map(([exercise, base, step]) => ({
+          exercise,
           // Last set drops a rep or two, like a real lifter tiring.
-          [8, 8, 6 + (week % 2)].forEach((reps, s) => insertSet.run(exId, s + 1, reps, weight));
-        });
+          sets: [8, 8, 6 + (week % 2)].map(reps => ({ reps, weight: base + step * week })),
+        })));
         n++;
       }
     }

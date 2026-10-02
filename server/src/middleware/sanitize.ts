@@ -10,6 +10,7 @@ function stripHtml(value: unknown): unknown {
 }
 
 export default function sanitize(req: Request, res: Response, next: NextFunction) {
-  if (req.body) req.body = stripHtml(req.body);
+  // Express 5 leaves req.body undefined when no JSON was sent; handlers destructure it.
+  req.body = stripHtml(req.body ?? {});
   next();
 }

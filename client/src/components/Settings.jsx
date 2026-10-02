@@ -17,21 +17,17 @@ export default function Settings({ settings, onSave, onBack, onImported }) {
     }
   };
 
-  const handleImport = (e) => {
+  const handleImport = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      try {
-        const { imported } = await importWorkouts(ev.target.result);
-        toast.success(`Imported ${imported} session${imported !== 1 ? 's' : ''}!`);
-        onImported?.();
-      } catch {
-        toast.error('Import failed. Check the file format and try again.');
-      }
-    };
-    reader.readAsText(file);
     e.target.value = '';
+    if (!file) return;
+    try {
+      const { imported } = await importWorkouts(await file.text());
+      toast.success(`Imported ${imported} session${imported !== 1 ? 's' : ''}!`);
+      onImported?.();
+    } catch {
+      toast.error('Import failed. Check the file format and try again.');
+    }
   };
 
   const handleExport = async () => {
