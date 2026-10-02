@@ -7,13 +7,13 @@ import UserPicker from './components/UserPicker';
 import Settings from './components/Settings';
 import { getExercises, getChartData, getSettings, updateSettings, endDemo } from './api';
 
-const defaultSettings = { defaultSetCount: 3, showTimeOfDay: true, darkMode: false };
+const defaultSettings = { defaultSetCount: 3, showTimeOfDay: true, darkMode: true };
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [settings, setSettings] = useState(() => ({
     ...defaultSettings,
-    darkMode: localStorage.getItem('ft_dark') === 'true',
+    darkMode: localStorage.getItem('ft_dark') !== 'false',
   }));
   const [showSettings, setShowSettings] = useState(false);
   const [exercises, setExercises] = useState([]);

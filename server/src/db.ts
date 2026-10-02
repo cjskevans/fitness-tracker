@@ -15,7 +15,7 @@ db.exec(`
     user_id INTEGER PRIMARY KEY REFERENCES users(id),
     default_set_count INTEGER NOT NULL DEFAULT 3,
     show_time_of_day INTEGER NOT NULL DEFAULT 1,
-    dark_mode INTEGER NOT NULL DEFAULT 0
+    dark_mode INTEGER NOT NULL DEFAULT 1
   );
 
   CREATE TABLE IF NOT EXISTS templates (

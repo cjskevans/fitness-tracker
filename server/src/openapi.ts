@@ -179,7 +179,7 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
         example: 3,
       },
       showTimeOfDay: { type: 'boolean', example: true },
-      darkMode: { type: 'boolean', example: false },
+      darkMode: { type: 'boolean', example: true },
     },
   },
 

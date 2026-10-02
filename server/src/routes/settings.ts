@@ -18,7 +18,7 @@ interface SettingsRow {
   dark_mode: number;
 }
 
-const DEFAULTS: Settings = { defaultSetCount: 3, showTimeOfDay: true, darkMode: false };
+const DEFAULTS: Settings = { defaultSetCount: 3, showTimeOfDay: true, darkMode: true };
 
 router.get('/', requireAuth, (req, res) => {
   const { userId } = req.user;
@@ -41,7 +41,7 @@ router.put('/', requireAuth, (req, res) => {
       default_set_count = excluded.default_set_count,
       show_time_of_day  = excluded.show_time_of_day,
       dark_mode         = excluded.dark_mode
-  `).run(userId, defaultSetCount ?? DEFAULTS.defaultSetCount, showTimeOfDay ? 1 : 0, darkMode ? 1 : 0);
+  `).run(userId, defaultSetCount ?? DEFAULTS.defaultSetCount, showTimeOfDay ? 1 : 0, (darkMode ?? DEFAULTS.darkMode) ? 1 : 0);
   res.json({ ok: true });
 });
 
