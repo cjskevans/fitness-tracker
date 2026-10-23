@@ -255,3 +255,37 @@ describe('GET /api/templates/:id/last-session', () => {
     expect(res.status).toBe(403);
   });
 });
+
+// ── Garmin ───────────────────────────────────────────────────────────────────
+
+describe('GET /api/garmin/last-run', () => {
+  afterEach(() => {
+    delete process.env.GarminApiKey;
+    jest.restoreAllMocks();
+  });
+
+  it('is 503 when no API key is configured', async () => {
+    const { token } = await registerAndLogin('gina');
+    const res = await authed(request(app).get('/api/garmin/last-run'), token);
+    expect(res.status).toBe(503);
+  });
+
+  it('exchanges the key and returns a trimmed run', async () => {
+    process.env.GarminApiKey = 'test-key';
+    const fetchMock = jest.spyOn(global, 'fetch')
+      .mockResolvedValueOnce(new Response('access-token'))
+      .mockResolvedValueOnce(Response.json([{
+        activityId: 1, activityName: 'Easy', startTimeLocal: '2026-10-10 08:30:18',
+        distance: 5000, duration: 1500, averageHR: 150, startLatitude: 44.9,
+      }]));
+
+    const { token } = await registerAndLogin('gina');
+    const res = await authed(request(app).get('/api/garmin/last-run'), token);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ id: 1, name: 'Easy', distanceMeters: 5000, averageHR: 150, calories: null });
+    expect(res.body).not.toHaveProperty('startLatitude');
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).toEqual({ Authorization: 'ApiKey test-key' });
+    expect(fetchMock.mock.calls[1]?.[1]?.headers).toEqual({ Authorization: 'Bearer access-token' });
+  });
+});

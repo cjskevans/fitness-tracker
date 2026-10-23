@@ -12,6 +12,7 @@ import settings from './settings';
 import templates from './templates';
 import exportRouter from './export';
 import importRouter from './import';
+import garmin from './garmin';
 
 const routes: Record<string, Router> = {
   '/api/health':    health,
@@ -24,6 +25,7 @@ const routes: Record<string, Router> = {
   '/api/templates': templates,
   '/api/export':    exportRouter,
   '/api/import':    importRouter,
+  '/api/garmin':    garmin,
 };
 
 export default routes;

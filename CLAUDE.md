@@ -66,7 +66,7 @@ TypeScript pinned to 6.x because ts-jest does not yet support 7. Query result sh
 **Server structure**:
 - `server/src/index.ts` — mounts all routers, applies global middleware (helmet, cors, sanitize, errorHandler), serves API docs
 - `server/src/routes/index.ts` — the mount table (path → router); the single source of truth for what the API exposes
-- `server/src/routes/` — one file per resource: `health`, `auth`, `sessions`, `exercises`, `workouts`, `prs`, `settings`, `templates`, `export`, `import`
+- `server/src/routes/` — one file per resource: `health`, `auth`, `sessions`, `exercises`, `workouts`, `prs`, `settings`, `templates`, `export`, `import`, `garmin`
 - `server/src/openapi.ts` — OpenAPI 3.0 spec for the whole API, typed against `openapi-types`
 - `server/src/middleware/auth.ts` — `requireAuth` JWT middleware + `JWT_SECRET`
 - `server/src/middleware/errorHandler.ts` — centralised error handler (4-arg Express middleware)
@@ -105,5 +105,7 @@ While unreachable, the store polls `GET /api/health` (unauthenticated, `server/s
 **Responsive layout**: Breakpoint at 640px in `index.css`. Layout-critical styles (grid, padding, header, template rows) use CSS classes; all other styles remain inline.
 
 **Exercise taxonomy**: `client/src/exercises.js` exports a static map of muscle group → exercise list. Users can also enter custom exercise names.
+
+**Garmin last run**: `GET /api/garmin/last-run` (`routes/garmin.ts`) proxies Garmin Connect's Personal API using `GarminApiKey` from the root `.env`, which `index.ts` loads only when run directly so Jest never sees it. The key is exchanged for a 24h access token (no refresh tokens exist) that is cached in memory. It is one key per server, so every user, including demo users, sees the key owner's run. Without the key the endpoint returns 503 and the home-page **Last Run** card shows that message.
 
 **Workout History**: Shows the 3 most recent sessions by default with a "See more" toggle to expand all sessions.

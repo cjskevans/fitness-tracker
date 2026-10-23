@@ -32,6 +32,13 @@ api.interceptors.response.use(
   error => {
     if (isUnreachable(error)) reportUnreachable();
     else reportReachable();
+    // An expired JWT otherwise leaves the app "logged in" with every request
+    // failing. /auth is excluded so a wrong password on login isn't a logout.
+    if (error.response?.status === 401 && !error.config?.url?.startsWith('/auth')) {
+      localStorage.removeItem('ft_token');
+      localStorage.removeItem('ft_user');
+      window.location.reload();
+    }
     // Rejected unchanged: UserPicker branches on err.response?.status.
     return Promise.reject(error);
   }
@@ -69,6 +76,9 @@ export const getExercises = () =>
 
 export const getPRs = () =>
   api.get('/prs').then(r => r.data);
+
+export const getLastRun = () =>
+  api.get('/garmin/last-run').then(r => r.data);
 
 export const getSettings = () =>
   api.get('/settings').then(r => r.data);

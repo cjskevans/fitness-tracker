@@ -5,6 +5,7 @@ import PersonalRecords from './components/PersonalRecords';
 import WorkoutHistory from './components/WorkoutHistory';
 import UserPicker from './components/UserPicker';
 import Settings from './components/Settings';
+import LastRun from './components/LastRun';
 import { getExercises, getChartData, getSettings, updateSettings, endDemo } from './api';
 
 const defaultSettings = { defaultSetCount: 3, showTimeOfDay: true, darkMode: true };
@@ -118,6 +119,12 @@ export default function App() {
               </select>
               {selectedExercise && <ProgressChart data={chartData} />}
             </div>
+          </div>
+
+          <div style={{ ...card, marginTop: '1.5rem' }}>
+            <h2 style={{ marginTop: 0 }}>Last Run</h2>
+            <p style={desc}>Your most recent run from Garmin Connect.</p>
+            <LastRun />
           </div>
 
           <div style={{ ...card, marginTop: '1.5rem' }}>

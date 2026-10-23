@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import fs from 'fs';
 import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import errorHandler from './middleware/errorHandler';
@@ -42,6 +43,9 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 if (require.main === module) {
+  // Optional root .env (holds GarminApiKey). Loaded here, not at import, so tests never see real keys.
+  const envFile = path.join(__dirname, '../../.env');
+  if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
   const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

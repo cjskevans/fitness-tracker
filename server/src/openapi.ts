@@ -170,6 +170,21 @@ const schemas: Record<string, OpenAPIV3.SchemaObject> = {
     },
   },
 
+  LastRun: {
+    type: 'object',
+    nullable: true,
+    properties: {
+      id: { type: 'integer', description: 'Garmin activity ID.', example: 24676603619 },
+      name: { type: 'string', example: 'Long Lake Running' },
+      startTimeLocal: { type: 'string', description: 'Device-local start time.', example: '2026-10-10 08:30:18' },
+      distanceMeters: { type: 'number', example: 21155.7 },
+      durationSeconds: { type: 'number', example: 6575.98 },
+      averageHR: { type: 'number', nullable: true, example: 178 },
+      calories: { type: 'number', nullable: true, example: 1641 },
+      elevationGainMeters: { type: 'number', nullable: true, example: 164 },
+    },
+  },
+
   Settings: {
     type: 'object',
     properties: {
@@ -467,6 +482,20 @@ const paths: OpenAPIV3.PathsObject = {
       responses: {
         200: json('Personal records.', arrayOf('PersonalRecord')),
         401: use('Unauthorized'),
+      },
+    },
+  },
+
+  '/api/garmin/last-run': {
+    get: {
+      tags: ['Progress'],
+      summary: 'Most recent Garmin Connect run',
+      description: 'Fetched live from Garmin with the server\'s personal API key (GarminApiKey), so every user sees the key owner\'s run. Returns null when there are no runs.',
+      responses: {
+        200: json('The latest running activity, or null.', ref('LastRun')),
+        401: use('Unauthorized'),
+        502: errorResponse('Garmin rejected the request or was unreachable.'),
+        503: errorResponse('GarminApiKey is not set on the server.'),
       },
     },
   },
